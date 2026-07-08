@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   Bell,
+  Camera,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
+  Download,
   Eye,
   Filter,
   KeyRound,
@@ -113,6 +115,23 @@ function StatusBadge({ validity, status }) {
   return <span className={cx("status-badge", finalStatus)}>{labels[finalStatus] || finalStatus}</span>;
 }
 
+function qrDownloadName({ itemCode, itemName, qrId, referenceId } = {}) {
+  const safeName = String(itemCode || itemName || referenceId || qrId || "qr-code")
+    .trim()
+    .replace(/[^a-z0-9-_]+/gi, "-")
+    .replace(/(^-|-$)/g, "") || "qr-code";
+  return `${safeName}-qr.svg`;
+}
+
+function DownloadQrLink({ qrImageDataUrl, itemCode, itemName, qrId, referenceId, className = "ghost-btn tiny" }) {
+  if (!qrImageDataUrl) return null;
+  return (
+    <a className={className} href={qrImageDataUrl} download={qrDownloadName({ itemCode, itemName, qrId, referenceId })}>
+      <Download size={14} /> Download QR
+    </a>
+  );
+}
+
 function FieldInput({ field, value, onChange }) {
   if (field.type === "image") {
     function handleFile(event) {
@@ -132,7 +151,7 @@ function FieldInput({ field, value, onChange }) {
       <div className="image-input-box">
         {value ? <img src={value} alt={field.label} className="image-preview" /> : <div className="image-placeholder">No image</div>}
         <div className="image-input-actions">
-          <input id={field.id} type="file" accept="image/*" required={field.required && !value} onChange={handleFile} />
+          <input id={field.id} type="file" accept="image/*" capture="environment" required={field.required && !value} onChange={handleFile} />
           {value && <button type="button" className="ghost-btn tiny" onClick={() => onChange(field.id, "")}>Remove</button>}
         </div>
       </div>
@@ -348,47 +367,135 @@ function UserRegister({ categories, onCreated, onBack }) {
 
 function ScanPage({ onOpenItem, onBack }) {
   const [lookupText, setLookupText] = useState("");
-  const [scannerOn, setScannerOn] = useState(false);
   const [error, setError] = useState("");
   const [referenceResult, setReferenceResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [scanPreview, setScanPreview] = useState(null);
+  const isMobileDevice = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || "");
+  }, []);
 
   useEffect(() => {
-    if (!scannerOn) return;
-    let scanner;
-    let disposed = false;
-
-    import("html5-qrcode")
-      .then(({ Html5QrcodeScanner, Html5QrcodeSupportedFormats }) => {
-        if (disposed) return;
-        scanner = new Html5QrcodeScanner(
-          "qr-reader",
-          {
-            fps: 10,
-            qrbox: { width: 220, height: 220 },
-            rememberLastUsedCamera: true,
-            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
-          },
-          false
-        );
-        scanner.render(
-          (decodedText) => {
-            const qrId = parseQrText(decodedText);
-            setLookupText(qrId);
-            onOpenItem(qrId);
-            scanner.clear().catch(() => {});
-            setScannerOn(false);
-          },
-          () => {}
-        );
-      })
-      .catch((err) => setError(`Scanner failed to load: ${err.message}`));
-
     return () => {
-      disposed = true;
-      if (scanner) scanner.clear().catch(() => {});
+      if (scanPreview?.url) URL.revokeObjectURL(scanPreview.url);
     };
-  }, [scannerOn, onOpenItem]);
+  }, [scanPreview?.url]);
+
+  async function openItemFromDecodedText(decodedText, delayMs = 0) {
+    const qrId = parseQrText(decodedText);
+    if (!qrId) throw new Error("No QR text was found.");
+    setLookupText(qrId);
+    if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    onOpenItem(qrId);
+  }
+
+  async function tryBarcodeDetector(file) {
+    if (typeof window === "undefined" || !("BarcodeDetector" in window) || typeof createImageBitmap !== "function") {
+      throw new Error("Native barcode detector is not available.");
+    }
+
+    const formats = await window.BarcodeDetector.getSupportedFormats?.().catch(() => []) || [];
+    const detector = new window.BarcodeDetector({ formats: formats.includes("qr_code") ? ["qr_code"] : undefined });
+    const bitmap = await createImageBitmap(file);
+
+    try {
+      const results = await detector.detect(bitmap);
+      const qrResult = results.find((entry) => entry.rawValue) || results[0];
+      if (!qrResult?.rawValue) throw new Error("No QR code detected.");
+
+      const boxes = results
+        .filter((entry) => entry.rawValue && entry.boundingBox)
+        .map((entry) => ({
+          x: entry.boundingBox.x,
+          y: entry.boundingBox.y,
+          width: entry.boundingBox.width,
+          height: entry.boundingBox.height
+        }));
+
+      return {
+        decodedText: qrResult.rawValue,
+        boxes,
+        imageSize: { width: bitmap.width, height: bitmap.height }
+      };
+    } finally {
+      bitmap.close?.();
+    }
+  }
+
+  async function tryHtml5QrCode(file) {
+    const { Html5Qrcode } = await import("html5-qrcode");
+    const scanner = new Html5Qrcode("qr-upload-reader");
+    try {
+      const decodedText = await scanner.scanFile(file, false);
+      return { decodedText, boxes: [], imageSize: null };
+    } finally {
+      try {
+        await scanner.clear();
+      } catch {
+        // scanFile does not always create a persistent camera stream.
+      }
+    }
+  }
+
+  async function handleQrPhoto(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please take or upload an image of a QR code.");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setError("");
+    setReferenceResult(null);
+    setImageBusy(true);
+    setScanPreview({
+      url: previewUrl,
+      status: "scanning",
+      message: "Scanning QR image...",
+      decodedText: "",
+      boxes: [],
+      imageSize: null
+    });
+
+    try {
+      let decoded;
+      try {
+        decoded = await tryBarcodeDetector(file);
+      } catch {
+        decoded = await tryHtml5QrCode(file);
+      }
+
+      const qrId = parseQrText(decoded.decodedText);
+      setScanPreview((current) => ({
+        ...(current || {}),
+        url: previewUrl,
+        status: "detected",
+        message: `Detected ${qrId}`,
+        decodedText: qrId,
+        boxes: decoded.boxes || [],
+        imageSize: decoded.imageSize || null
+      }));
+      await openItemFromDecodedText(decoded.decodedText, 550);
+    } catch (err) {
+      setScanPreview((current) => ({
+        ...(current || {}),
+        url: previewUrl,
+        status: "failed",
+        message: "No readable QR code found.",
+        decodedText: "",
+        boxes: [],
+        imageSize: null
+      }));
+      setError("Could not read the QR from that image. Move closer, keep it bright, and make sure the full QR code is inside the frame.");
+    } finally {
+      setImageBusy(false);
+    }
+  }
 
   async function manualSubmit(event) {
     event.preventDefault();
@@ -428,13 +535,54 @@ function ScanPage({ onOpenItem, onBack }) {
 
         {error && <div className="notice error">{error}</div>}
 
-        <div className="scanner-box">
-          {scannerOn ? <div id="qr-reader" /> : (
-            <button className="scan-start" onClick={() => { setError(""); setReferenceResult(null); setScannerOn(true); }}>
-              <ScanLine size={32} />
-              Open camera scanner
-            </button>
+        <div className="scanner-box capture-box">
+          {scanPreview?.url ? (
+            <div className={cx("scan-preview", scanPreview.status)}>
+              <img src={scanPreview.url} alt="QR scan preview" />
+              {scanPreview.boxes?.length > 0 && scanPreview.imageSize ? (
+                scanPreview.boxes.map((box, index) => (
+                  <span
+                    key={`${box.x}-${box.y}-${index}`}
+                    className="scan-detected-box"
+                    style={{
+                      left: `${(box.x / scanPreview.imageSize.width) * 100}%`,
+                      top: `${(box.y / scanPreview.imageSize.height) * 100}%`,
+                      width: `${(box.width / scanPreview.imageSize.width) * 100}%`,
+                      height: `${(box.height / scanPreview.imageSize.height) * 100}%`
+                    }}
+                  />
+                ))
+              ) : (
+                <span className="scan-frame" />
+              )}
+              <div className={cx("scan-state", scanPreview.status)}>
+                <strong>{scanPreview.status === "detected" ? "QR detected" : scanPreview.status === "failed" ? "Try again" : "Scanning"}</strong>
+                <span>{scanPreview.message}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <ScanLine size={27} />
+              <div className="capture-copy">
+                <strong>{isMobileDevice ? "Mobile camera" : "QR image upload"}</strong>
+                <span>{isMobileDevice ? "Take a clear QR photo. The app will read it and open the item." : "PC/laptop can upload a QR image on HTTP."}</span>
+              </div>
+            </>
           )}
+          <div className="capture-actions">
+            <label className="primary-btn file-action">
+              <Camera size={15} />
+              {imageBusy ? "Reading..." : isMobileDevice ? "Open mobile camera" : "Upload QR image"}
+              <input
+                type="file"
+                accept="image/*"
+                capture={isMobileDevice ? "environment" : undefined}
+                onChange={handleQrPhoto}
+                disabled={imageBusy}
+              />
+            </label>
+          </div>
+          <div id="qr-upload-reader" className="qr-upload-reader" aria-hidden="true" />
         </div>
 
         <form onSubmit={manualSubmit} className="followup-check">
@@ -446,15 +594,28 @@ function ScanPage({ onOpenItem, onBack }) {
         </form>
 
         {referenceResult && (
-          <div className={cx("reference-result", referenceResult.status)}>
+          <div className={cx("reference-result", referenceResult.status, referenceResult.qrImageDataUrl && "with-qr") }>
             <div>
               <strong>{referenceResult.itemName}</strong>
               <span>{referenceResult.referenceId} • {referenceResult.site}</span>
               {referenceResult.reviewNote && <small>{referenceResult.reviewNote}</small>}
             </div>
+            {referenceResult.qrImageDataUrl && (
+              <div className="reference-qr-card">
+                <img src={referenceResult.qrImageDataUrl} alt={`QR for ${referenceResult.itemName}`} />
+                <small>{referenceResult.qrId}</small>
+              </div>
+            )}
             <div className="reference-actions">
               <span className={cx("status-badge", referenceResult.status)}>{referenceResult.status === "accepted" ? "Accepted" : referenceResult.status === "rejected" ? "Rejected" : "Pending"}</span>
               {referenceResult.qrId && <button type="button" className="ghost-btn tiny" onClick={() => onOpenItem(referenceResult.qrId)}>Open QR</button>}
+              <DownloadQrLink
+                qrImageDataUrl={referenceResult.qrImageDataUrl}
+                itemCode={referenceResult.itemCode}
+                itemName={referenceResult.itemName}
+                qrId={referenceResult.qrId}
+                referenceId={referenceResult.referenceId}
+              />
             </div>
           </div>
         )}
@@ -462,6 +623,7 @@ function ScanPage({ onOpenItem, onBack }) {
     </main>
   );
 }
+
 function ItemDetails({ qrId, onBack }) {
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
@@ -486,11 +648,27 @@ function ItemDetails({ qrId, onBack }) {
         {item && !loading && (
           <>
             <div className={cx("validity-banner", item.validity?.status)}>
-              {item.validity?.status === "valid" ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
-              <div>
-                <p>System validity</p>
-                <h1>{item.validity?.status === "valid" ? "This item is still GOOD" : item.validity?.status === "expired" ? "This item QR is EXPIRED" : "This item is ARCHIVED"}</h1>
-                <span>{item.validity?.status === "valid" ? `${item.validity?.daysLeft ?? "—"} day(s) left` : `Expiry date: ${formatDate(item.expiresAt)}`}</span>
+              <div className="validity-copy">
+                {item.validity?.status === "valid" ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
+                <div>
+                  <p>System validity</p>
+                  <h1>{item.validity?.status === "valid" ? "This item is still GOOD" : item.validity?.status === "expired" ? "This item QR is EXPIRED" : "This item is ARCHIVED"}</h1>
+                  <span>{item.validity?.status === "valid" ? `${item.validity?.daysLeft ?? "—"} day(s) left` : `Expiry date: ${formatDate(item.expiresAt)}`}</span>
+                </div>
+              </div>
+              <div className="validity-qr-card">
+                <img src={item.qrImageDataUrl} alt={`QR for ${item.itemName}`} />
+                <div>
+                  <span>{item.referenceId ? `Ref: ${item.referenceId}` : item.qrId}</span>
+                  <DownloadQrLink
+                    qrImageDataUrl={item.qrImageDataUrl}
+                    itemCode={item.itemCode}
+                    itemName={item.itemName}
+                    qrId={item.qrId}
+                    referenceId={item.referenceId}
+                    className="ghost-btn tiny qr-download-link"
+                  />
+                </div>
               </div>
             </div>
 
@@ -498,7 +676,7 @@ function ItemDetails({ qrId, onBack }) {
               <div>
                 <p className="eyebrow">{item.categoryName}</p>
                 <h2>{item.itemName}</h2>
-                <p className="muted">ID: {item.itemCode} • QR: {item.qrId}</p>
+                <p className="muted">ID: {item.itemCode} • QR: {item.qrId}{item.referenceId ? ` • Ref: ${item.referenceId}` : ""}</p>
               </div>
               <StatusBadge validity={item.validity} />
             </div>

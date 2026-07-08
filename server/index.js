@@ -270,6 +270,8 @@ app.get("/api/requests/reference/:referenceId", async (req, res) => {
     ? (db.items || []).find((entry) => entry.id === request.itemId)
     : null;
 
+  if (item && await ensureBrandedQrForItem(req, item)) await writeDb(db);
+
   res.json({
     referenceId: request.referenceId || request.id,
     itemName: request.itemName,
@@ -281,6 +283,8 @@ app.get("/api/requests/reference/:referenceId", async (req, res) => {
     reviewedAt: request.reviewedAt,
     reviewNote: request.reviewNote || "",
     qrId: item?.qrId || "",
+    qrPayload: item?.qrPayload || "",
+    qrImageDataUrl: item?.qrImageDataUrl || "",
     expiresAt: item?.expiresAt || "",
     validity: item ? getItemValidity(item) : null
   });
@@ -384,7 +388,12 @@ app.get("/api/items/qr/:qrId", async (req, res) => {
   const item = db.items.find((entry) => entry.qrId === req.params.qrId);
   if (!item) return res.status(404).json({ error: "QR item not found." });
   if (await ensureBrandedQrForItem(req, item)) await writeDb(db);
-  res.json({ ...item, validity: getItemValidity(item) });
+  const sourceRequest = (db.requests || []).find((entry) => entry.id === item.requestId || entry.itemId === item.id);
+  res.json({
+    ...item,
+    referenceId: sourceRequest?.referenceId || "",
+    validity: getItemValidity(item)
+  });
 });
 
 app.get("/api/items/:id/qr", async (req, res) => {

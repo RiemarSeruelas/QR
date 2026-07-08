@@ -1,0 +1,16 @@
+# Factory/production HTTPS reverse proxy.
+# Use this with docker-compose.trusted.yml.
+#
+# Put your IT-issued certificate files here:
+#   certs/qr-system.crt
+#   certs/qr-system.key
+#
+# The certificate MUST match the URL users open, preferably a factory DNS name
+# like qr-system.factory.local. Avoid IP-only HTTPS unless IT gives you a cert
+# with the IP address in the Subject Alternative Name.
+
+:8443 {
+  tls /certs/qr-system.crt /certs/qr-system.key
+  encode gzip
+  reverse_proxy qr-system:5057
+}

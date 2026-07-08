@@ -2,78 +2,67 @@
 
 React + Express MVP for registering assets, approving/rejecting requests, generating one permanent QR per approved item, and checking if the item is still valid, expired, or archived.
 
-## Latest changes in this version
+## Current deployment mode
 
-- Top nav is now only **User** and **Admin**.
-- User default page now shows only **Register** and **Follow up**.
-- Removed the long user explanation text.
-- Added **Light/Dark mode** toggle in the top bar.
-- Removed manual **Sync data**. The app now auto-refreshes every few seconds for live request/status updates.
-- Admin now requires a password before opening.
-  - Temporary password: `1234`
-- Removed the old admin hero/description block.
-- Admin default view is now the **Expiry quick list**.
-  - It only shows the asset name/basic details.
-  - It follows the default expiry order from the backend: expired first, then closest to expiring.
-- Admin Builder, Requests, and Approved Assets are now opened by buttons instead of all showing at once.
-- Layout is smaller and cleaner from the root CSS, with fixed-height panels to avoid full-page scrolling.
-- Each new registration gets a `REF-XXXXXXXX` Reference ID for checking Pending / Accepted / Rejected status.
-- Follow up now uses one input only: QR ID, scanned URL, or Reference ID.
-- Admin Builder supports an `image` field type stored as base64 in the JSON DB.
-- Admin Builder was cleaned into a two-panel layout: categories on the left, fillable fields on the right.
-- Requests now show a red notification badge when pending approvals exist.
-- Site selection is a dropdown with Savoury, Engineering, and Dressings.
+This version is cleaned for **normal HTTP Docker deployment**.
 
-## What is included
+- Use `docker compose up --build`.
+- Open the app on the server PC with `http://localhost:5057`.
+- Open the app on phones/other PCs with `http://YOUR-PC-IP:5057`.
+- No Caddy files are included in this version.
+- No certificate is required for the phone camera-upload flow.
 
-- User registration
-  - User selects a category.
-  - User fills the admin-defined fields.
-  - User submits a request for admin approval.
-  - System returns a Reference ID that the user can check later.
+## Camera behavior
 
-- QR scanning
-  - Built-in camera scanner using `html5-qrcode`.
-  - Single manual lookup input for QR ID, scanned URL, or Reference ID.
-  - Scanning the QR opens the item detail page.
-  - Detail page clearly shows GOOD, EXPIRED, or ARCHIVED.
+This version is set for **HTTP factory/LAN mode**.
 
-- Admin console
-  - Password gate.
-  - Expiry quick list.
+- **Mobile users:** Follow up opens the phone camera through the native camera picker, then the app reads the QR photo.
+- **PC/laptop users:** Follow up only allows QR image upload/manual input.
+- Uploaded/scanned QR photos show a preview frame while scanning and a detected QR marker before opening the item.
+- The PC live webcam button was removed to avoid confusing users on LAN HTTP.
+
+True in-page live camera streaming for both phone and PC still requires HTTPS. This HTTP version uses the browser-safe camera/photo flow for mobile and upload flow for PC.
+
+## Main features
+
+- User page
+  - Register an item.
+  - Follow up using mobile camera/photo upload, PC image upload, QR ID, scanned URL, or Reference ID.
+  - Reference ID shows Pending / Accepted / Rejected.
+  - Accepted references show the generated QR code and a Download QR button.
+  - Item detail pages show a compact QR code and Reference ID inside the validity banner.
+
+- Admin page
+  - Password gate. Temporary password: `1234`.
+  - Expiry quick list as the default view.
+  - Clickable admin stat cards for Builder, Requests, Approved, Expired, and Archived.
+  - Red request notification badge.
   - Add/edit categories such as Machines, Devices, Tools.
   - Add custom fields per category.
-  - Mandatory rule: each category must have at least one required date field.
-  - Add image fields; images are saved as base64 in `server/data/db.json` for now.
-  - View pending requests.
-  - Approve request and generate a permanent QR code.
-  - Reject request with note.
-  - View approved/registered list.
-  - Filter by search, category, site, status, date/expiry sorting.
-  - Update expiry/validity date while keeping the same QR code.
+  - Supports text, number, date, textarea, select, and image fields.
+  - Image fields are stored as base64 inside `server/data/db.json` for now.
+  - Approve/reject requests.
+  - Approved request generates one permanent QR code.
+  - Update expiry while keeping the same QR code.
   - Archive and restore registered items.
 
 - Backend JSON storage
   - Data is stored in `server/data/db.json`.
-  - This is the temporary local JSON database you can replace with PostgreSQL/MongoDB later.
+  - This can be replaced with PostgreSQL/MongoDB later if the API response shapes stay the same.
 
-- Caddy-ready
-  - Includes a `Caddyfile` for serving the frontend on HTTPS and proxying `/api` to the backend.
-  - This helps mobile phones use the camera scanner over the local network.
-
-## Install
+## Install locally
 
 ```bash
 npm install
 ```
 
-## Run in development
+## Run locally for development
 
 ```bash
 npm run dev
 ```
 
-Frontend:
+Frontend dev server:
 
 ```txt
 http://localhost:5173
@@ -85,54 +74,56 @@ Backend:
 http://localhost:5057
 ```
 
-Open the frontend from another device on the same network by using your PC IP:
+## Run with Docker Desktop
 
-```txt
-http://YOUR_PC_IP:5173
+Create `.env` beside `docker-compose.yml`:
+
+```env
+PUBLIC_APP_URL=http://YOUR-PC-IP:5057
 ```
 
-For mobile camera scanning, HTTPS is usually required. Use Caddy for that.
+Example:
+
+```env
+PUBLIC_APP_URL=http://192.168.254.109:5057
+```
+
+Run:
+
+```powershell
+docker compose up --build
+```
+
+Open:
+
+```txt
+http://localhost:5057
+```
+
+Or from phone/other PC:
+
+```txt
+http://YOUR-PC-IP:5057
+```
 
 ## Important before approving real QR codes
 
-Set the public app URL before approving real assets, because the QR image stores the URL that will be scanned.
-
-Create a `.env` file based on `.env.example`:
-
-```env
-PORT=5057
-PUBLIC_APP_URL=https://YOUR_PC_IP:8443
-```
+Set `PUBLIC_APP_URL` before approving real assets, because the QR image stores that URL.
 
 If you approve QR codes while using `localhost`, the QR image will point to `localhost`, which will not work from phones.
 
-## Run with Caddy for LAN/mobile camera
+Use a stable LAN URL instead:
 
-Build frontend:
-
-```bash
-npm run build
+```env
+PUBLIC_APP_URL=http://192.168.254.109:5057
 ```
 
-Run backend:
+Then restart Docker:
 
-```bash
-npm run server
+```powershell
+docker compose down
+docker compose up --build
 ```
-
-In another terminal, from the project folder:
-
-```bash
-caddy run
-```
-
-Open this on your phone:
-
-```txt
-https://YOUR_PC_IP:8443
-```
-
-Caddy uses `tls internal`, so some devices may warn about the certificate unless your device trusts Caddy's local CA.
 
 ## JSON database location
 

@@ -1,0 +1,22 @@
+services:
+  qr-system:
+    build: .
+    container_name: qr-system
+    environment:
+      PORT: 5057
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://qr-system.local:8443}
+    volumes:
+      - ./server/data:/app/server/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: qr-system-caddy
+    depends_on:
+      - qr-system
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./Caddyfile.trusted:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    restart: unless-stopped

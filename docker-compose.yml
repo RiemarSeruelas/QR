@@ -1,0 +1,14 @@
+services:
+  qr-system:
+    build: .
+    container_name: qr-system
+    ports:
+      - "5057:5057"
+    environment:
+      PORT: 5057
+      # Change this to your LAN URL before approving real assets.
+      # Example: http://192.168.254.109:5057
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5057}
+    volumes:
+      - ./server/data:/app/server/data
+    restart: unless-stopped
