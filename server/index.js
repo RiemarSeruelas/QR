@@ -42,6 +42,39 @@ function makeItemUrl(req, qrId) {
   return `${getPublicBaseUrl(req)}/item/${encodeURIComponent(qrId)}`;
 }
 
+function makeBrandedQrSvg(rawSvg) {
+  const badge = `
+  <rect x="208" y="208" width="144" height="144" rx="28" fill="#ffffff" stroke="#0f62fe" stroke-width="6"/>
+  <circle cx="280" cy="280" r="50" fill="#0f62fe"/>
+  <text x="280" y="276" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="900" fill="#ffffff">U</text>
+  <text x="280" y="303" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="800" fill="#ffffff">Unilever</text>`;
+  return rawSvg.replace("</svg>", `${badge}\n</svg>`);
+}
+
+async function createBrandedQrDataUrl(payload) {
+  const rawSvg = await QRCode.toString(payload, {
+    type: "svg",
+    errorCorrectionLevel: "H",
+    margin: 2,
+    width: 560,
+    color: {
+      dark: "#122033",
+      light: "#ffffff"
+    }
+  });
+  const brandedSvg = makeBrandedQrSvg(rawSvg);
+  return `data:image/svg+xml;base64,${Buffer.from(brandedSvg).toString("base64")}`;
+}
+
+async function ensureBrandedQrForItem(req, item) {
+  if (item.qrBrand === "unilever-v1" && item.qrImageDataUrl) return false;
+  item.qrPayload = item.qrPayload || makeItemUrl(req, item.qrId);
+  item.qrImageDataUrl = await createBrandedQrDataUrl(item.qrPayload);
+  item.qrBrand = "unilever-v1";
+  item.updatedAt = nowIso();
+  return true;
+}
+
 function getItemValidity(item) {
   const archived = Boolean(item.archivedAt);
   const expiresAt = item.expiresAt ? new Date(item.expiresAt) : null;
@@ -266,17 +299,14 @@ app.post("/api/requests/:id/approve", async (req, res) => {
 
   const qrId = `QR-${nanoid()}`;
   const qrPayload = makeItemUrl(req, qrId);
-  const qrImageDataUrl = await QRCode.toDataURL(qrPayload, {
-    errorCorrectionLevel: "M",
-    margin: 2,
-    scale: 8
-  });
+  const qrImageDataUrl = await createBrandedQrDataUrl(qrPayload);
 
   const item = {
     id: `asset-${nanoid()}`,
     qrId,
     qrPayload,
     qrImageDataUrl,
+    qrBrand: "unilever-v1",
     itemName: request.itemName,
     itemCode: request.itemCode,
     site: request.site,
@@ -317,6 +347,11 @@ app.post("/api/requests/:id/reject", async (req, res) => {
 
 app.get("/api/items", async (req, res) => {
   const db = await readDb();
+  let changedQrBranding = false;
+  for (const item of db.items || []) {
+    if (await ensureBrandedQrForItem(req, item)) changedQrBranding = true;
+  }
+  if (changedQrBranding) await writeDb(db);
   const search = normalizeText(req.query.search).toLowerCase();
   const categoryId = normalizeText(req.query.categoryId);
   const site = normalizeText(req.query.site).toLowerCase();
@@ -348,6 +383,7 @@ app.get("/api/items/qr/:qrId", async (req, res) => {
   const db = await readDb();
   const item = db.items.find((entry) => entry.qrId === req.params.qrId);
   if (!item) return res.status(404).json({ error: "QR item not found." });
+  if (await ensureBrandedQrForItem(req, item)) await writeDb(db);
   res.json({ ...item, validity: getItemValidity(item) });
 });
 
@@ -355,7 +391,8 @@ app.get("/api/items/:id/qr", async (req, res) => {
   const db = await readDb();
   const item = db.items.find((entry) => entry.id === req.params.id);
   if (!item) return res.status(404).json({ error: "Item not found." });
-  res.json({ qrId: item.qrId, qrPayload: item.qrPayload, qrImageDataUrl: item.qrImageDataUrl });
+  if (await ensureBrandedQrForItem(req, item)) await writeDb(db);
+  res.json({ qrId: item.qrId, qrPayload: item.qrPayload, qrImageDataUrl: item.qrImageDataUrl, qrBrand: item.qrBrand });
 });
 
 app.patch("/api/items/:id", async (req, res) => {

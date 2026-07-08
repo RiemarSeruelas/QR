@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
+  Bell,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
@@ -29,6 +30,7 @@ import { api } from "./api.js";
 const ADMIN_PASSWORD = "1234";
 const EMPTY_FIELD = { label: "", type: "text", required: false, placeholder: "", optionsText: "" };
 const FIELD_TYPES = ["text", "number", "date", "textarea", "select", "image"];
+const SITE_OPTIONS = ["Savoury", "Engineering", "Dressings"];
 
 function formatDate(value) {
   if (!value) return "—";
@@ -73,16 +75,28 @@ function parseQrText(text) {
   return raw;
 }
 
-function StatCard({ icon: Icon, label, value, tone = "default" }) {
-  return (
-    <section className={cx("stat-card", `tone-${tone}`)}>
-      <div className="stat-icon"><Icon size={16} /></div>
-      <div>
+function StatCard({ icon: Icon, label, value, tone = "default", active = false, onClick, badge = 0 }) {
+  const finalBadge = Number(badge || 0);
+  const cardContent = (
+    <>
+      <div className="stat-icon"><Icon size={15} /></div>
+      <div className="stat-text">
         <p>{label}</p>
         <strong>{value}</strong>
       </div>
-    </section>
+      {finalBadge > 0 && <span className="notif-badge">{finalBadge > 99 ? "99+" : finalBadge}</span>}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" className={cx("stat-card", "clickable", `tone-${tone}`, active && "active")} onClick={onClick}>
+        {cardContent}
+      </button>
+    );
+  }
+
+  return <section className={cx("stat-card", `tone-${tone}`)}>{cardContent}</section>;
 }
 
 function StatusBadge({ validity, status }) {
@@ -191,68 +205,21 @@ function EmptyState({ icon: Icon = ClipboardList, title, message }) {
   );
 }
 
-function ReferenceCheck() {
-  const [referenceId, setReferenceId] = useState("");
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function checkReference(event) {
-    event.preventDefault();
-    const finalReference = referenceId.trim().toUpperCase();
-    if (!finalReference) return;
-    setBusy(true);
-    setError("");
-    setResult(null);
-    try {
-      const data = await api.requestByReference(finalReference);
-      setResult(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="reference-card">
-      <form onSubmit={checkReference} className="reference-form">
-        <label>
-          Check request reference
-          <input value={referenceId} onChange={(event) => setReferenceId(event.target.value)} placeholder="REF-XXXXXXXX" />
-        </label>
-        <button className="secondary-btn" disabled={busy}>{busy ? "Checking" : "Check"}</button>
-      </form>
-      {error && <div className="notice error compact-notice">{error}</div>}
-      {result && (
-        <div className={cx("reference-result", result.status)}>
-          <div>
-            <strong>{result.itemName}</strong>
-            <span>{result.referenceId} • {result.site}</span>
-          </div>
-          <span className={cx("status-badge", result.status)}>{result.status === "accepted" ? "Accepted" : result.status === "rejected" ? "Rejected" : "Pending"}</span>
-        </div>
-      )}
-    </section>
-  );
-}
-
 function UserHome({ onPick }) {
   return (
     <main className="choice-page">
       <div className="choice-grid">
         <button className="choice-card" onClick={() => onPick("register")}>
-          <PackageCheck size={28} />
+          <PackageCheck size={26} />
           <strong>Register</strong>
           <span>Submit an item for approval.</span>
         </button>
-        <button className="choice-card" onClick={() => onPick("scan")}>
-          <ScanLine size={28} />
-          <strong>Scan</strong>
-          <span>Check QR validity.</span>
+        <button className="choice-card" onClick={() => onPick("followup")}>
+          <ScanLine size={26} />
+          <strong>Follow up</strong>
+          <span>Scan QR or check reference.</span>
         </button>
       </div>
-      <ReferenceCheck />
     </main>
   );
 }
@@ -261,7 +228,7 @@ function UserRegister({ categories, onCreated, onBack }) {
   const [form, setForm] = useState({
     itemName: "",
     itemCode: "",
-    site: "",
+    site: SITE_OPTIONS[0],
     submittedBy: "",
     categoryId: categories[0]?.id || "",
     values: {}
@@ -296,7 +263,7 @@ function UserRegister({ categories, onCreated, onBack }) {
         text: `Request submitted. Save this reference ID: ${created.referenceId}` ,
         referenceId: created.referenceId
       });
-      setForm({ itemName: "", itemCode: "", site: "", submittedBy: "", categoryId: form.categoryId, values: {} });
+      setForm({ itemName: "", itemCode: "", site: form.site || SITE_OPTIONS[0], submittedBy: "", categoryId: form.categoryId, values: {} });
       onCreated?.();
     } catch (error) {
       setMessage({ type: "error", text: error.message });
@@ -337,8 +304,10 @@ function UserRegister({ categories, onCreated, onBack }) {
 
           <div className="form-row two">
             <label>
-              Site / Area <span>*</span>
-              <input value={form.site} onChange={(event) => updateBase("site", event.target.value)} required placeholder="Cavite Foods - Savoury" />
+              Site <span>*</span>
+              <select value={form.site} onChange={(event) => updateBase("site", event.target.value)} required>
+                {SITE_OPTIONS.map((site) => <option key={site} value={site}>{site}</option>)}
+              </select>
             </label>
             <label>
               Submitted by
@@ -359,12 +328,14 @@ function UserRegister({ categories, onCreated, onBack }) {
                 <strong>{category.name} details</strong>
                 <span>{(category.fields || []).length} fields</span>
               </div>
-              {(category.fields || []).map((field) => (
-                <label key={field.id}>
-                  {field.label} {field.required && <span>*</span>}
-                  <FieldInput field={field} value={form.values[field.id]} onChange={updateValue} />
-                </label>
-              ))}
+              <div className="dynamic-fields-grid">
+                {(category.fields || []).map((field) => (
+                  <label key={field.id} className={cx("dynamic-field", ["textarea", "image"].includes(field.type) && "wide")}>
+                    {field.label} {field.required && <span>*</span>}
+                    <FieldInput field={field} value={form.values[field.id]} onChange={updateValue} />
+                  </label>
+                ))}
+              </div>
             </div>
           )}
 
@@ -376,9 +347,11 @@ function UserRegister({ categories, onCreated, onBack }) {
 }
 
 function ScanPage({ onOpenItem, onBack }) {
-  const [qrText, setQrText] = useState("");
+  const [lookupText, setLookupText] = useState("");
   const [scannerOn, setScannerOn] = useState(false);
   const [error, setError] = useState("");
+  const [referenceResult, setReferenceResult] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!scannerOn) return;
@@ -392,7 +365,7 @@ function ScanPage({ onOpenItem, onBack }) {
           "qr-reader",
           {
             fps: 10,
-            qrbox: { width: 240, height: 240 },
+            qrbox: { width: 220, height: 220 },
             rememberLastUsedCamera: true,
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
           },
@@ -401,7 +374,7 @@ function ScanPage({ onOpenItem, onBack }) {
         scanner.render(
           (decodedText) => {
             const qrId = parseQrText(decodedText);
-            setQrText(qrId);
+            setLookupText(qrId);
             onOpenItem(qrId);
             scanner.clear().catch(() => {});
             setScannerOn(false);
@@ -417,11 +390,29 @@ function ScanPage({ onOpenItem, onBack }) {
     };
   }, [scannerOn, onOpenItem]);
 
-  function manualSubmit(event) {
+  async function manualSubmit(event) {
     event.preventDefault();
-    const qrId = parseQrText(qrText);
-    if (!qrId) return setError("Enter or scan a QR code first.");
-    onOpenItem(qrId);
+    const value = lookupText.trim();
+    const normalized = value.toUpperCase();
+    if (!value) return setError("Enter a QR ID, scanned URL, or Reference ID first.");
+
+    setError("");
+    setReferenceResult(null);
+
+    if (normalized.startsWith("REF-")) {
+      setBusy(true);
+      try {
+        const data = await api.requestByReference(normalized);
+        setReferenceResult(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    onOpenItem(parseQrText(value));
   }
 
   return (
@@ -430,7 +421,7 @@ function ScanPage({ onOpenItem, onBack }) {
         <div className="panel-heading compact-heading">
           <div>
             <p className="eyebrow">User</p>
-            <h2>Scan QR</h2>
+            <h2>Follow up</h2>
           </div>
           <button type="button" className="ghost-btn small" onClick={onBack}>Back</button>
         </div>
@@ -439,25 +430,38 @@ function ScanPage({ onOpenItem, onBack }) {
 
         <div className="scanner-box">
           {scannerOn ? <div id="qr-reader" /> : (
-            <button className="scan-start" onClick={() => { setError(""); setScannerOn(true); }}>
-              <ScanLine size={36} />
+            <button className="scan-start" onClick={() => { setError(""); setReferenceResult(null); setScannerOn(true); }}>
+              <ScanLine size={32} />
               Open camera scanner
             </button>
           )}
         </div>
 
-        <form onSubmit={manualSubmit} className="manual-scan">
+        <form onSubmit={manualSubmit} className="followup-check">
           <label>
-            Or paste/type QR ID
-            <input value={qrText} onChange={(event) => setQrText(event.target.value)} placeholder="QR-XXXXXXXX or scanned URL" />
+            QR ID / scanned URL / Reference ID
+            <input value={lookupText} onChange={(event) => setLookupText(event.target.value)} placeholder="QR-XXXXXXXX, item URL, or REF-XXXXXXXX" />
           </label>
-          <button className="secondary-btn">Check QR</button>
+          <button className="secondary-btn" disabled={busy}>{busy ? "Checking" : "Check"}</button>
         </form>
+
+        {referenceResult && (
+          <div className={cx("reference-result", referenceResult.status)}>
+            <div>
+              <strong>{referenceResult.itemName}</strong>
+              <span>{referenceResult.referenceId} • {referenceResult.site}</span>
+              {referenceResult.reviewNote && <small>{referenceResult.reviewNote}</small>}
+            </div>
+            <div className="reference-actions">
+              <span className={cx("status-badge", referenceResult.status)}>{referenceResult.status === "accepted" ? "Accepted" : referenceResult.status === "rejected" ? "Rejected" : "Pending"}</span>
+              {referenceResult.qrId && <button type="button" className="ghost-btn tiny" onClick={() => onOpenItem(referenceResult.qrId)}>Open QR</button>}
+            </div>
+          </div>
+        )}
       </section>
     </main>
   );
 }
-
 function ItemDetails({ qrId, onBack }) {
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
@@ -631,17 +635,23 @@ function CategoryManager({ categories, reload }) {
       </div>
       {message && <div className={cx("notice", message.type)}>{message.text}</div>}
 
-      <div className="split-admin">
-        <div className="category-list">
-          {categories.map((category) => (
-            <button key={category.id} className={cx("category-chip", editingId === category.id && "active")} onClick={() => editCategory(category)}>
-              <strong>{category.name}</strong>
-              <span>{(category.fields || []).length} fields</span>
-            </button>
-          ))}
-        </div>
+      <div className="builder-layout">
+        <aside className="builder-left">
+          <div className="builder-left-head">
+            <strong>Categories</strong>
+            <span>{categories.length}</span>
+          </div>
+          <div className="category-list">
+            {categories.map((category) => (
+              <button key={category.id} className={cx("category-card", editingId === category.id && "active")} onClick={() => editCategory(category)}>
+                <strong>{category.name}</strong>
+                <span>{(category.fields || []).length} fields</span>
+              </button>
+            ))}
+          </div>
+        </aside>
 
-        <form className="stack-form category-form" onSubmit={saveCategory}>
+        <form className="builder-right" onSubmit={saveCategory}>
           <div className="form-row two">
             <label>
               Category name <span>*</span>
@@ -654,39 +664,48 @@ function CategoryManager({ categories, reload }) {
           </div>
 
           <div className="field-builder-head">
-            <strong>Fields users will fill in</strong>
+            <div>
+              <strong>Fields users will fill in</strong>
+              <p className="muted small-text">At least one required date field is mandatory.</p>
+            </div>
             <button type="button" className="secondary-btn small" onClick={addField}><Plus size={15} /> Add field</button>
           </div>
-          <p className="muted small-text">At least one required date field is mandatory.</p>
 
-          {draft.fields.map((field, index) => (
-            <div className="field-builder-card" key={`${field.id || "field"}-${index}`}>
-              <div className="form-row field-grid">
-                <label>
-                  Label
-                  <input value={field.label} onChange={(event) => updateField(index, "label", event.target.value)} placeholder="Next check date" />
-                </label>
-                <label>
-                  Type
-                  <select value={field.type} onChange={(event) => updateField(index, "type", event.target.value)}>
+          <div className="field-list">
+            {draft.fields.map((field, index) => (
+              <div className="field-builder-card" key={`${field.id || "field"}-${index}`}>
+                <div className="field-grid">
+                  <input
+                    aria-label="Field label"
+                    value={field.label}
+                    onChange={(event) => updateField(index, "label", event.target.value)}
+                    placeholder="Field label, example: Last PM Date"
+                  />
+                  <select aria-label="Field type" value={field.type} onChange={(event) => updateField(index, "type", event.target.value)}>
                     {FIELD_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
                   </select>
-                </label>
-                <label className="check-label">
-                  <input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, "required", event.target.checked)} /> Required
-                </label>
-                <button type="button" className="danger-icon" onClick={() => removeField(index)} title="Remove field"><Trash2 size={16} /></button>
+                  <label className="check-label">
+                    <input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, "required", event.target.checked)} /> Required
+                  </label>
+                  <button type="button" className="danger-icon" onClick={() => removeField(index)} title="Remove field"><Trash2 size={16} /></button>
+                </div>
+                {field.type === "select" && (
+                  <textarea
+                    className="select-options-box"
+                    rows={2}
+                    value={field.optionsText || ""}
+                    onChange={(event) => updateField(index, "optionsText", event.target.value)}
+                    placeholder={"Select options, one per line\nGood\nNeeds Repair"}
+                  />
+                )}
               </div>
-              {field.type === "select" && (
-                <label>
-                  Select options, one per line
-                  <textarea rows={3} value={field.optionsText || ""} onChange={(event) => updateField(index, "optionsText", event.target.value)} placeholder={"Good\nNeeds Repair\nFor Checking"} />
-                </label>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
 
-          <button className="primary-btn">{editingId ? "Save category" : "Add category"}</button>
+          <div className="builder-submit-row">
+            {editingId && <button type="button" className="danger-btn small subtle" onClick={() => deleteCategory(editingId)}>Delete unused</button>}
+            <button className="primary-btn">{editingId ? "Save category" : "Add category"}</button>
+          </div>
         </form>
       </div>
     </section>
@@ -851,7 +870,7 @@ function ItemCard({ item, reload, openItem }) {
         </label>
         <button className="secondary-btn small" onClick={renew} disabled={busy}>Save</button>
         <button className="ghost-btn small" onClick={() => openItem(item.qrId)}><Eye size={15} /> View</button>
-        <a className="ghost-btn small" href={item.qrImageDataUrl} download={`${item.itemCode || item.qrId}-qr.png`}>QR</a>
+        <a className="ghost-btn small" href={item.qrImageDataUrl} download={`${item.itemCode || item.qrId}-qr.${item.qrImageDataUrl?.startsWith("data:image/svg") ? "svg" : "png"}`}>QR</a>
         <button className="danger-btn small subtle" onClick={archiveToggle} disabled={busy}>
           <Archive size={15} /> {item.archivedAt ? "Restore" : "Archive"}
         </button>
@@ -861,7 +880,7 @@ function ItemCard({ item, reload, openItem }) {
 }
 
 function RegisteredAdmin({ items, categories, filters, setFilters, reload, openItem }) {
-  const sites = useMemo(() => Array.from(new Set(items.map((item) => item.site).filter(Boolean))).sort(), [items]);
+  const sites = useMemo(() => Array.from(new Set([...SITE_OPTIONS, ...items.map((item) => item.site).filter(Boolean)])), [items]);
   return (
     <section className="admin-section">
       <div className="section-head">
@@ -903,7 +922,7 @@ function RegisteredAdmin({ items, categories, filters, setFilters, reload, openI
         <label>
           <SlidersHorizontal size={15} />
           <select value={filters.sort} onChange={(event) => setFilters((current) => ({ ...current, sort: event.target.value }))}>
-            <option value="expiry">Default: expired / closest expiry</option>
+            <option value="expiry">Expiry priority</option>
             <option value="alpha">Alphabetical</option>
             <option value="site">By site</option>
             <option value="registered">Date registered</option>
@@ -957,34 +976,54 @@ function QuickList({ items, openItem }) {
   );
 }
 
-function AdminDashboard({ categories, requests, items, filters, setFilters, reloadAll, openItem, onLogout }) {
-  const [activePanel, setActivePanel] = useState("quick");
+function AdminDashboard({ categories, requests, items, allItems, filters, setFilters, reloadAll, openItem, onLogout }) {
+  const [activePanel, setActivePanel] = useState(() => localStorage.getItem("qr-admin-panel") || "quick");
+  const quickItems = useMemo(() => allItems.filter((entry) => !entry.archivedAt), [allItems]);
   const stats = useMemo(() => ({
     pending: requests.filter((entry) => entry.status === "pending").length,
-    registered: items.filter((entry) => !entry.archivedAt).length,
-    expired: items.filter((entry) => entry.validity?.status === "expired").length,
-    archived: items.filter((entry) => entry.archivedAt).length
-  }), [requests, items]);
+    registered: allItems.filter((entry) => !entry.archivedAt).length,
+    expired: allItems.filter((entry) => entry.validity?.status === "expired").length,
+    archived: allItems.filter((entry) => entry.archivedAt).length,
+    categories: categories.length
+  }), [categories, requests, allItems]);
+
+  useEffect(() => {
+    localStorage.setItem("qr-admin-panel", activePanel);
+  }, [activePanel]);
+
+  function showPanel(panel) {
+    if (panel === "quick") {
+      setFilters((current) => ({ ...current, search: "", categoryId: "", site: "", status: "", sort: "expiry", includeArchived: false }));
+    }
+    setActivePanel(panel);
+  }
+
+  function showApproved(nextFilters = {}) {
+    setFilters((current) => ({ ...current, ...nextFilters }));
+    setActivePanel("approved");
+  }
 
   return (
     <main className="admin-page compact-admin">
-      <div className="stats-grid">
-        <StatCard icon={ClipboardList} label="Pending" value={stats.pending} tone="warn" />
-        <StatCard icon={QrCode} label="Registered" value={stats.registered} tone="ok" />
-        <StatCard icon={CalendarDays} label="Expired" value={stats.expired} tone="danger" />
-        <StatCard icon={Archive} label="Archived" value={stats.archived} />
+      <div className="admin-mini-head">
+        <div>
+          <p className="eyebrow">Admin</p>
+          <h2>{activePanel === "quick" ? "Expiry quick list" : activePanel === "builder" ? "Admin builder" : activePanel === "requests" ? "Requests" : "Approved assets"}</h2>
+        </div>
+        <button className="ghost-btn small" onClick={onLogout}><LogOut size={14} /> Lock admin</button>
       </div>
 
-      <div className="admin-action-row">
-        <button className={cx("section-toggle", activePanel === "quick" && "active")} onClick={() => setActivePanel("quick")}><ClipboardList size={15} /> Quick list</button>
-        <button className={cx("section-toggle", activePanel === "builder" && "active")} onClick={() => setActivePanel("builder")}><Plus size={15} /> Admin builder</button>
-        <button className={cx("section-toggle", activePanel === "requests" && "active")} onClick={() => setActivePanel("requests")}><PackageCheck size={15} /> Requests</button>
-        <button className={cx("section-toggle", activePanel === "approved" && "active")} onClick={() => setActivePanel("approved")}><QrCode size={15} /> Approved assets</button>
-        <button className="section-toggle danger-toggle" onClick={onLogout}><LogOut size={15} /> Lock admin</button>
+      <div className="stats-grid admin-nav-grid">
+        <StatCard icon={ClipboardList} label="Quick list" value={`${stats.registered} active`} active={activePanel === "quick"} onClick={() => showPanel("quick")} />
+        <StatCard icon={Plus} label="Builder" value={`${stats.categories} types`} active={activePanel === "builder"} onClick={() => showPanel("builder")} />
+        <StatCard icon={Bell} label="Requests" value={stats.pending} tone="warn" active={activePanel === "requests"} onClick={() => showPanel("requests")} badge={stats.pending} />
+        <StatCard icon={QrCode} label="Approved" value={stats.registered} tone="ok" active={activePanel === "approved" && !filters.status && !filters.includeArchived} onClick={() => showApproved({ status: "", includeArchived: false, sort: "expiry" })} />
+        <StatCard icon={CalendarDays} label="Expired" value={stats.expired} tone="danger" active={activePanel === "approved" && filters.status === "expired"} onClick={() => showApproved({ status: "expired", includeArchived: false, sort: "expiry" })} />
+        <StatCard icon={Archive} label="Archived" value={stats.archived} active={activePanel === "approved" && filters.status === "archived"} onClick={() => showApproved({ status: "archived", includeArchived: true, sort: "expiry" })} />
       </div>
 
       <div className="admin-panel-slot">
-        {activePanel === "quick" && <QuickList items={items} openItem={openItem} />}
+        {activePanel === "quick" && <QuickList items={quickItems} openItem={openItem} />}
         {activePanel === "builder" && <CategoryManager categories={categories} reload={reloadAll} />}
         {activePanel === "requests" && <RequestsAdmin requests={requests} reload={reloadAll} />}
         {activePanel === "approved" && <RegisteredAdmin items={items} categories={categories} filters={filters} setFilters={setFilters} reload={reloadAll} openItem={openItem} />}
@@ -1000,12 +1039,15 @@ export default function App() {
     return "";
   }, []);
 
-  const [tab, setTab] = useState(routeQrId ? "details" : "user");
+  const savedMainTab = localStorage.getItem("qr-active-tab") || "user";
+  const [tab, setTab] = useState(routeQrId ? "details" : savedMainTab);
+  const [detailsReturn, setDetailsReturn] = useState({ tab: savedMainTab, userMode: "followup" });
   const [userMode, setUserMode] = useState("home");
   const [selectedQrId, setSelectedQrId] = useState(routeQrId);
   const [categories, setCategories] = useState([]);
   const [requests, setRequests] = useState([]);
   const [items, setItems] = useState([]);
+  const [allItems, setAllItems] = useState([]);
   const [filters, setFilters] = useState({ search: "", categoryId: "", site: "", status: "", sort: "expiry", includeArchived: false });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -1028,8 +1070,12 @@ export default function App() {
   }
 
   async function loadItems(nextFilters = filters) {
-    const data = await api.items(nextFilters);
-    setItems(data);
+    const [filteredData, allData] = await Promise.all([
+      api.items(nextFilters),
+      api.items({ sort: "expiry", includeArchived: true })
+    ]);
+    setItems(filteredData);
+    setAllItems(allData);
   }
 
   async function reloadAll({ silent = false } = {}) {
@@ -1063,6 +1109,7 @@ export default function App() {
 
   function openItem(qrId) {
     const finalQrId = parseQrText(qrId);
+    setDetailsReturn({ tab: tab === "admin" ? "admin" : "user", userMode: userMode || "followup" });
     setSelectedQrId(finalQrId);
     setTab("details");
     if (window.location.pathname !== `/item/${finalQrId}`) {
@@ -1072,11 +1119,28 @@ export default function App() {
 
   function setMainTab(nextTab) {
     setTab(nextTab);
+    localStorage.setItem("qr-active-tab", nextTab);
     if (nextTab === "user") setUserMode("home");
     if (nextTab !== "details" && window.location.pathname.startsWith("/item/")) {
       window.history.pushState({}, "", "/");
     }
   }
+
+  function backFromDetails() {
+    if (window.location.pathname.startsWith("/item/")) {
+      window.history.pushState({}, "", "/");
+    }
+    if (detailsReturn.tab === "admin") {
+      setTab("admin");
+      localStorage.setItem("qr-active-tab", "admin");
+      return;
+    }
+    setUserMode(detailsReturn.userMode || "followup");
+    setTab("user");
+    localStorage.setItem("qr-active-tab", "user");
+  }
+
+  const activeMainTab = tab === "details" ? detailsReturn.tab : tab;
 
   function logoutAdmin() {
     localStorage.removeItem("qr-admin-unlocked");
@@ -1090,14 +1154,14 @@ export default function App() {
           <span><ShieldCheck size={20} /></span>
           <div>
             <strong>QR Asset System</strong>
-            <small>Register • Approve • Scan</small>
+            <small>Register • Approve • Follow up</small>
           </div>
         </button>
 
         <div className="topbar-actions">
           <nav>
-            <button className={cx((tab === "user" || tab === "details") && "active")} onClick={() => setMainTab("user")}><UserCircle size={16} /> User</button>
-            <button className={cx(tab === "admin" && "active")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin</button>
+            <button className={cx(activeMainTab === "user" && "active")} onClick={() => setMainTab("user")}><UserCircle size={16} /> User</button>
+            <button className={cx(activeMainTab === "admin" && "active", "nav-with-badge")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin{requests.filter((entry) => entry.status === "pending").length > 0 && <span className="nav-badge">{requests.filter((entry) => entry.status === "pending").length}</span>}</button>
           </nav>
           <span className="live-pill">Live</span>
           <button className="top-action icon-only" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label="Toggle light and dark mode">
@@ -1112,10 +1176,10 @@ export default function App() {
       <div className="view-area">
         {tab === "user" && userMode === "home" && <UserHome onPick={setUserMode} />}
         {tab === "user" && userMode === "register" && <UserRegister categories={categories} onCreated={reloadAll} onBack={() => setUserMode("home")} />}
-        {tab === "user" && userMode === "scan" && <ScanPage onOpenItem={openItem} onBack={() => setUserMode("home")} />}
+        {tab === "user" && userMode === "followup" && <ScanPage onOpenItem={openItem} onBack={() => setUserMode("home")} />}
         {tab === "admin" && !adminUnlocked && <AdminLogin onLogin={() => setAdminUnlocked(true)} />}
-        {tab === "admin" && adminUnlocked && <AdminDashboard categories={categories} requests={requests} items={items} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} onLogout={logoutAdmin} />}
-        {tab === "details" && <ItemDetails qrId={selectedQrId} onBack={() => { setUserMode("scan"); setMainTab("user"); }} />}
+        {tab === "admin" && adminUnlocked && <AdminDashboard categories={categories} requests={requests} items={items} allItems={allItems} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} onLogout={logoutAdmin} />}
+        {tab === "details" && <ItemDetails qrId={selectedQrId} onBack={backFromDetails} />}
       </div>
     </div>
   );

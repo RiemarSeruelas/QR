@@ -5,7 +5,7 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
 ## Latest changes in this version
 
 - Top nav is now only **User** and **Admin**.
-- User default page now shows **Register**, **Scan**, and a compact Reference ID checker.
+- User default page now shows only **Register** and **Follow up**.
 - Removed the long user explanation text.
 - Added **Light/Dark mode** toggle in the top bar.
 - Removed manual **Sync data**. The app now auto-refreshes every few seconds for live request/status updates.
@@ -18,7 +18,11 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
 - Admin Builder, Requests, and Approved Assets are now opened by buttons instead of all showing at once.
 - Layout is smaller and cleaner from the root CSS, with fixed-height panels to avoid full-page scrolling.
 - Each new registration gets a `REF-XXXXXXXX` Reference ID for checking Pending / Accepted / Rejected status.
+- Follow up now uses one input only: QR ID, scanned URL, or Reference ID.
 - Admin Builder supports an `image` field type stored as base64 in the JSON DB.
+- Admin Builder was cleaned into a two-panel layout: categories on the left, fillable fields on the right.
+- Requests now show a red notification badge when pending approvals exist.
+- Site selection is a dropdown with Savoury, Engineering, and Dressings.
 
 ## What is included
 
@@ -30,7 +34,7 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
 
 - QR scanning
   - Built-in camera scanner using `html5-qrcode`.
-  - Manual QR input fallback.
+  - Single manual lookup input for QR ID, scanned URL, or Reference ID.
   - Scanning the QR opens the item detail page.
   - Detail page clearly shows GOOD, EXPIRED, or ARCHIVED.
 
