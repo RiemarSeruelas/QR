@@ -5,10 +5,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ClipboardList,
-  Edit3,
   Eye,
   Filter,
+  KeyRound,
   LayoutDashboard,
+  LogOut,
+  Moon,
   PackageCheck,
   Plus,
   QrCode,
@@ -17,11 +19,14 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Sun,
   Trash2,
+  UserCircle,
   XCircle
 } from "lucide-react";
 import { api } from "./api.js";
 
+const ADMIN_PASSWORD = "1234";
 const EMPTY_FIELD = { label: "", type: "text", required: false, placeholder: "", optionsText: "" };
 const FIELD_TYPES = ["text", "number", "date", "textarea", "select"];
 
@@ -44,10 +49,6 @@ function formatDateTime(value) {
     minute: "2-digit",
     hour12: false
   });
-}
-
-function todayDateInput() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function cx(...classes) {
@@ -75,7 +76,7 @@ function parseQrText(text) {
 function StatCard({ icon: Icon, label, value, tone = "default" }) {
   return (
     <section className={cx("stat-card", `tone-${tone}`)}>
-      <div className="stat-icon"><Icon size={18} /></div>
+      <div className="stat-icon"><Icon size={16} /></div>
       <div>
         <p>{label}</p>
         <strong>{value}</strong>
@@ -99,24 +100,19 @@ function FieldInput({ field, value, onChange }) {
     onChange: (event) => onChange(field.id, event.target.value)
   };
 
-  if (field.type === "textarea") {
-    return <textarea {...commonProps} rows={4} />;
-  }
+  if (field.type === "textarea") return <textarea {...commonProps} rows={3} />;
 
   if (field.type === "select") {
     return (
       <select {...commonProps}>
         <option value="">Select {field.label}</option>
-        {(field.options || []).map((option) => (
-          <option key={option} value={option}>{option}</option>
-        ))}
+        {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
     );
   }
 
   return <input {...commonProps} type={field.type || "text"} />;
 }
-
 
 function FieldRows({ fields = [], values = {}, compact = false }) {
   const knownRows = (fields || []).map((field) => ({
@@ -148,14 +144,31 @@ function FieldRows({ fields = [], values = {}, compact = false }) {
 function EmptyState({ icon: Icon = ClipboardList, title, message }) {
   return (
     <div className="empty-state">
-      <Icon size={34} />
+      <Icon size={30} />
       <h3>{title}</h3>
       <p>{message}</p>
     </div>
   );
 }
 
-function UserRegister({ categories, onCreated }) {
+function UserHome({ onPick }) {
+  return (
+    <main className="choice-page">
+      <button className="choice-card" onClick={() => onPick("register")}>
+        <PackageCheck size={34} />
+        <strong>Register</strong>
+        <span>Submit a machine, device, or tool for admin approval.</span>
+      </button>
+      <button className="choice-card" onClick={() => onPick("scan")}>
+        <ScanLine size={34} />
+        <strong>Scan</strong>
+        <span>Check if a QR item is still good, expired, or archived.</span>
+      </button>
+    </main>
+  );
+}
+
+function UserRegister({ categories, onCreated, onBack }) {
   const [form, setForm] = useState({
     itemName: "",
     itemCode: "",
@@ -180,10 +193,7 @@ function UserRegister({ categories, onCreated }) {
   }
 
   function updateValue(fieldId, value) {
-    setForm((current) => ({
-      ...current,
-      values: { ...current.values, [fieldId]: value }
-    }));
+    setForm((current) => ({ ...current, values: { ...current.values, [fieldId]: value } }));
   }
 
   async function submit(event) {
@@ -192,7 +202,7 @@ function UserRegister({ categories, onCreated }) {
     setMessage(null);
     try {
       await api.createRequest(form);
-      setMessage({ type: "success", text: "Request submitted. Admin can now review and approve it." });
+      setMessage({ type: "success", text: "Request submitted. Admin can now review it." });
       setForm({ itemName: "", itemCode: "", site: "", submittedBy: "", categoryId: form.categoryId, values: {} });
       onCreated?.();
     } catch (error) {
@@ -203,48 +213,34 @@ function UserRegister({ categories, onCreated }) {
   }
 
   return (
-    <main className="page-grid user-grid">
-      <section className="hero-card">
-        <div className="hero-badge"><QrCode size={18} /> QR Registration</div>
-        <h1>Register an item for QR approval.</h1>
-        <p>
-          The user submits the asset details first. Admin reviews it, approves it, then the system generates one permanent QR code for that specific item.
-        </p>
-        <div className="hero-steps">
-          <span>1. User submits</span>
-          <span>2. Admin approves</span>
-          <span>3. QR is generated</span>
-          <span>4. Scan checks validity</span>
-        </div>
-      </section>
-
-      <section className="panel form-panel">
-        <div className="panel-heading">
+    <main className="single-page tight-page">
+      <section className="panel form-panel compact-panel">
+        <div className="panel-heading compact-heading">
           <div>
-            <p className="eyebrow">User form</p>
-            <h2>Asset request</h2>
+            <p className="eyebrow">User</p>
+            <h2>Register item</h2>
           </div>
-          <PackageCheck size={24} />
+          <button type="button" className="ghost-btn small" onClick={onBack}>Back</button>
         </div>
 
         {message && <div className={cx("notice", message.type)}>{message.text}</div>}
 
-        <form onSubmit={submit} className="stack-form">
+        <form onSubmit={submit} className="stack-form compact-form">
           <div className="form-row two">
             <label>
               Item name <span>*</span>
-              <input value={form.itemName} onChange={(event) => updateBase("itemName", event.target.value)} required placeholder="Example: Flowwrap 1" />
+              <input value={form.itemName} onChange={(event) => updateBase("itemName", event.target.value)} required placeholder="Flowwrap 1" />
             </label>
             <label>
               Item ID <span>*</span>
-              <input value={form.itemCode} onChange={(event) => updateBase("itemCode", event.target.value)} required placeholder="Example: FD12B-FW-001" />
+              <input value={form.itemCode} onChange={(event) => updateBase("itemCode", event.target.value)} required placeholder="FD12B-FW-001" />
             </label>
           </div>
 
           <div className="form-row two">
             <label>
               Site / Area <span>*</span>
-              <input value={form.site} onChange={(event) => updateBase("site", event.target.value)} required placeholder="Example: Cavite Foods - Savoury" />
+              <input value={form.site} onChange={(event) => updateBase("site", event.target.value)} required placeholder="Cavite Foods - Savoury" />
             </label>
             <label>
               Submitted by
@@ -274,16 +270,14 @@ function UserRegister({ categories, onCreated }) {
             </div>
           )}
 
-          <button className="primary-btn" disabled={busy}>
-            {busy ? "Submitting..." : "Submit request"}
-          </button>
+          <button className="primary-btn" disabled={busy}>{busy ? "Submitting..." : "Submit request"}</button>
         </form>
       </section>
     </main>
   );
 }
 
-function ScanPage({ onOpenItem }) {
+function ScanPage({ onOpenItem, onBack }) {
   const [qrText, setQrText] = useState("");
   const [scannerOn, setScannerOn] = useState(false);
   const [error, setError] = useState("");
@@ -300,7 +294,7 @@ function ScanPage({ onOpenItem }) {
           "qr-reader",
           {
             fps: 10,
-            qrbox: { width: 260, height: 260 },
+            qrbox: { width: 240, height: 240 },
             rememberLastUsedCamera: true,
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
           },
@@ -333,25 +327,22 @@ function ScanPage({ onOpenItem }) {
   }
 
   return (
-    <main className="single-page">
-      <section className="panel scanner-panel">
-        <div className="panel-heading">
+    <main className="single-page tight-page">
+      <section className="panel scanner-panel compact-panel">
+        <div className="panel-heading compact-heading">
           <div>
-            <p className="eyebrow">Mobile-friendly scanner</p>
-            <h2>Scan QR to check machine validity</h2>
+            <p className="eyebrow">User</p>
+            <h2>Scan QR</h2>
           </div>
-          <ScanLine size={28} />
+          <button type="button" className="ghost-btn small" onClick={onBack}>Back</button>
         </div>
-        <p className="muted">
-          On phones, camera scanning usually requires HTTPS. Use the included Caddyfile for LAN testing.
-        </p>
 
         {error && <div className="notice error">{error}</div>}
 
         <div className="scanner-box">
           {scannerOn ? <div id="qr-reader" /> : (
             <button className="scan-start" onClick={() => { setError(""); setScannerOn(true); }}>
-              <ScanLine size={38} />
+              <ScanLine size={36} />
               Open camera scanner
             </button>
           )}
@@ -385,23 +376,19 @@ function ItemDetails({ qrId, onBack }) {
   }, [qrId]);
 
   return (
-    <main className="single-page">
-      <section className="panel detail-panel">
-        <button className="ghost-btn back-btn" onClick={onBack}>← Back</button>
+    <main className="single-page tight-page">
+      <section className="panel detail-panel compact-panel">
+        <button className="ghost-btn small back-btn" onClick={onBack}>← Back</button>
         {loading && <EmptyState icon={RefreshCw} title="Checking QR..." message="Loading item details and validity status." />}
         {error && <EmptyState icon={XCircle} title="QR not found" message={error} />}
         {item && !loading && (
           <>
             <div className={cx("validity-banner", item.validity?.status)}>
-              {item.validity?.status === "valid" ? <CheckCircle2 size={34} /> : <XCircle size={34} />}
+              {item.validity?.status === "valid" ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
               <div>
                 <p>System validity</p>
                 <h1>{item.validity?.status === "valid" ? "This item is still GOOD" : item.validity?.status === "expired" ? "This item QR is EXPIRED" : "This item is ARCHIVED"}</h1>
-                <span>
-                  {item.validity?.status === "valid"
-                    ? `${item.validity?.daysLeft ?? "—"} day(s) left before expiry`
-                    : `Expiry date: ${formatDate(item.expiresAt)}`}
-                </span>
+                <span>{item.validity?.status === "valid" ? `${item.validity?.daysLeft ?? "—"} day(s) left` : `Expiry date: ${formatDate(item.expiresAt)}`}</span>
               </div>
             </div>
 
@@ -432,6 +419,43 @@ function ItemDetails({ qrId, onBack }) {
   );
 }
 
+function AdminLogin({ onLogin }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function submit(event) {
+    event.preventDefault();
+    if (password !== ADMIN_PASSWORD) {
+      setError("Wrong password.");
+      return;
+    }
+    localStorage.setItem("qr-admin-unlocked", "true");
+    onLogin();
+  }
+
+  return (
+    <main className="single-page tight-page">
+      <section className="panel login-panel">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Admin</p>
+            <h2>Password required</h2>
+          </div>
+          <KeyRound size={24} />
+        </div>
+        {error && <div className="notice error">{error}</div>}
+        <form onSubmit={submit} className="stack-form">
+          <label>
+            Password
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter admin password" autoFocus />
+          </label>
+          <button className="primary-btn">Enter admin</button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
 function CategoryManager({ categories, reload }) {
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState({ name: "", description: "", fields: [{ ...EMPTY_FIELD, label: "Validity Date", type: "date", required: true }] });
@@ -447,10 +471,7 @@ function CategoryManager({ categories, reload }) {
     setDraft({
       name: category.name,
       description: category.description || "",
-      fields: (category.fields || []).map((field) => ({
-        ...field,
-        optionsText: (field.options || []).join("\n")
-      }))
+      fields: (category.fields || []).map((field) => ({ ...field, optionsText: (field.options || []).join("\n") }))
     });
   }
 
@@ -506,9 +527,9 @@ function CategoryManager({ categories, reload }) {
       <div className="section-head">
         <div>
           <p className="eyebrow">Admin builder</p>
-          <h2>Categories & addable fields</h2>
+          <h2>Categories & fields</h2>
         </div>
-        <button className="ghost-btn" onClick={resetDraft}>New category</button>
+        <button className="ghost-btn small" onClick={resetDraft}>New category</button>
       </div>
       {message && <div className={cx("notice", message.type)}>{message.text}</div>}
 
@@ -530,15 +551,15 @@ function CategoryManager({ categories, reload }) {
             </label>
             <label>
               Description
-              <input value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Optional short description" />
+              <input value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Optional" />
             </label>
           </div>
 
           <div className="field-builder-head">
             <strong>Fields users will fill in</strong>
-            <button type="button" className="secondary-btn small" onClick={addField}><Plus size={16} /> Add field</button>
+            <button type="button" className="secondary-btn small" onClick={addField}><Plus size={15} /> Add field</button>
           </div>
-          <p className="muted small-text">At least one required date is mandatory. If you forget it, the backend adds one automatically.</p>
+          <p className="muted small-text">At least one required date field is mandatory.</p>
 
           {draft.fields.map((field, index) => (
             <div className="field-builder-card" key={`${field.id || "field"}-${index}`}>
@@ -556,7 +577,7 @@ function CategoryManager({ categories, reload }) {
                 <label className="check-label">
                   <input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(index, "required", event.target.checked)} /> Required
                 </label>
-                <button type="button" className="danger-icon" onClick={() => removeField(index)} title="Remove field"><Trash2 size={18} /></button>
+                <button type="button" className="danger-icon" onClick={() => removeField(index)} title="Remove field"><Trash2 size={16} /></button>
               </div>
               {field.type === "select" && (
                 <label>
@@ -618,22 +639,22 @@ function RequestCard({ request, onAction }) {
         <span>By: {request.submittedBy || "—"}</span>
       </div>
       <details>
-        <summary>View submitted details</summary>
+        <summary>View details</summary>
         <FieldRows compact fields={request.fieldsSnapshot || []} values={request.values || {}} />
       </details>
       {request.status === "pending" && (
         <div className="approval-box">
           <label>
-            Optional expiry override
+            Expiry override
             <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
           </label>
           <label>
             Review note
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional reason or remark" />
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional remark" />
           </label>
           <div className="button-row">
-            <button className="primary-btn small" disabled={busy} onClick={approve}><CheckCircle2 size={16} /> Approve & generate QR</button>
-            <button className="danger-btn small" disabled={busy} onClick={reject}><XCircle size={16} /> Reject</button>
+            <button className="primary-btn small" disabled={busy} onClick={approve}><CheckCircle2 size={15} /> Approve</button>
+            <button className="danger-btn small" disabled={busy} onClick={reject}><XCircle size={15} /> Reject</button>
           </div>
         </div>
       )}
@@ -643,7 +664,7 @@ function RequestCard({ request, onAction }) {
 
 function RequestsAdmin({ requests, reload }) {
   const pending = requests.filter((entry) => entry.status === "pending");
-  const reviewed = requests.filter((entry) => entry.status !== "pending").slice(0, 6);
+  const reviewed = requests.filter((entry) => entry.status !== "pending").slice(0, 5);
   return (
     <section className="admin-section">
       <div className="section-head">
@@ -651,11 +672,11 @@ function RequestsAdmin({ requests, reload }) {
           <p className="eyebrow">Approval queue</p>
           <h2>Requests</h2>
         </div>
-        <button className="ghost-btn" onClick={reload}><RefreshCw size={16} /> Refresh</button>
+        <button className="ghost-btn small" onClick={reload}><RefreshCw size={15} /> Refresh</button>
       </div>
 
       {pending.length === 0 ? (
-        <EmptyState title="No pending requests" message="New user registrations will appear here for admin approval." />
+        <EmptyState title="No pending requests" message="New user registrations will appear here." />
       ) : (
         <div className="request-list">
           {pending.map((request) => <RequestCard key={request.id} request={request} onAction={reload} />)}
@@ -730,11 +751,11 @@ function ItemCard({ item, reload, openItem }) {
           Update expiry
           <input type="date" value={expiry} onChange={(event) => setExpiry(event.target.value)} />
         </label>
-        <button className="secondary-btn small" onClick={renew} disabled={busy}>Save expiry</button>
-        <button className="ghost-btn small" onClick={() => openItem(item.qrId)}><Eye size={16} /> View</button>
-        <a className="ghost-btn small" href={item.qrImageDataUrl} download={`${item.itemCode || item.qrId}-qr.png`}>Download QR</a>
+        <button className="secondary-btn small" onClick={renew} disabled={busy}>Save</button>
+        <button className="ghost-btn small" onClick={() => openItem(item.qrId)}><Eye size={15} /> View</button>
+        <a className="ghost-btn small" href={item.qrImageDataUrl} download={`${item.itemCode || item.qrId}-qr.png`}>QR</a>
         <button className="danger-btn small subtle" onClick={archiveToggle} disabled={busy}>
-          <Archive size={16} /> {item.archivedAt ? "Restore" : "Archive"}
+          <Archive size={15} /> {item.archivedAt ? "Restore" : "Archive"}
         </button>
       </div>
     </article>
@@ -750,30 +771,30 @@ function RegisteredAdmin({ items, categories, filters, setFilters, reload, openI
           <p className="eyebrow">Registered QR list</p>
           <h2>Approved assets</h2>
         </div>
-        <button className="ghost-btn" onClick={reload}><RefreshCw size={16} /> Refresh</button>
+        <button className="ghost-btn small" onClick={reload}><RefreshCw size={15} /> Refresh</button>
       </div>
 
       <div className="filter-bar">
         <label className="search-field">
-          <Search size={16} />
+          <Search size={15} />
           <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search name, ID, site, QR" />
         </label>
         <label>
-          <ChevronDown size={16} />
+          <ChevronDown size={15} />
           <select value={filters.categoryId} onChange={(event) => setFilters((current) => ({ ...current, categoryId: event.target.value }))}>
             <option value="">All categories</option>
             {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
         </label>
         <label>
-          <ChevronDown size={16} />
+          <ChevronDown size={15} />
           <select value={filters.site} onChange={(event) => setFilters((current) => ({ ...current, site: event.target.value }))}>
             <option value="">All sites</option>
             {sites.map((site) => <option key={site} value={site}>{site}</option>)}
           </select>
         </label>
         <label>
-          <Filter size={16} />
+          <Filter size={15} />
           <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
             <option value="">All status</option>
             <option value="expired">Expired</option>
@@ -782,7 +803,7 @@ function RegisteredAdmin({ items, categories, filters, setFilters, reload, openI
           </select>
         </label>
         <label>
-          <SlidersHorizontal size={16} />
+          <SlidersHorizontal size={15} />
           <select value={filters.sort} onChange={(event) => setFilters((current) => ({ ...current, sort: event.target.value }))}>
             <option value="expiry">Default: expired / closest expiry</option>
             <option value="alpha">Alphabetical</option>
@@ -808,37 +829,69 @@ function RegisteredAdmin({ items, categories, filters, setFilters, reload, openI
   );
 }
 
-function AdminDashboard({ categories, requests, items, filters, setFilters, reloadAll, openItem }) {
-  const stats = useMemo(() => {
-    return {
-      pending: requests.filter((entry) => entry.status === "pending").length,
-      registered: items.filter((entry) => !entry.archivedAt).length,
-      expired: items.filter((entry) => entry.validity?.status === "expired").length,
-      archived: items.filter((entry) => entry.archivedAt).length
-    };
-  }, [requests, items]);
+function QuickList({ items, openItem }) {
+  return (
+    <section className="admin-section quick-section">
+      <div className="section-head">
+        <div>
+          <p className="eyebrow">Default admin view</p>
+          <h2>Expiry quick list</h2>
+        </div>
+        <span className="quick-count">{items.length} active</span>
+      </div>
+
+      {items.length === 0 ? (
+        <EmptyState icon={QrCode} title="No approved assets yet" message="Approve requests first." />
+      ) : (
+        <div className="quick-list">
+          {items.map((item, index) => (
+            <button key={item.id} className={cx("quick-row", item.validity?.status)} onClick={() => openItem(item.qrId)}>
+              <span className="quick-rank">{String(index + 1).padStart(2, "0")}</span>
+              <strong>{item.itemName}</strong>
+              <span>{item.site}</span>
+              <span>Expires {formatDate(item.expiresAt)}</span>
+              <StatusBadge validity={item.validity} />
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AdminDashboard({ categories, requests, items, filters, setFilters, reloadAll, openItem, onLogout }) {
+  const [activePanel, setActivePanel] = useState("quick");
+  const stats = useMemo(() => ({
+    pending: requests.filter((entry) => entry.status === "pending").length,
+    registered: items.filter((entry) => !entry.archivedAt).length,
+    expired: items.filter((entry) => entry.validity?.status === "expired").length,
+    archived: items.filter((entry) => entry.archivedAt).length
+  }), [requests, items]);
 
   return (
-    <main className="admin-page">
-      <section className="admin-hero">
-        <div>
-          <p className="eyebrow">Admin console</p>
-          <h1>Build forms, approve registrations, and manage QR validity.</h1>
-          <p>Default asset sorting prioritizes expired QR records first, then the assets closest to expiring.</p>
-        </div>
-        <button className="primary-btn" onClick={reloadAll}><RefreshCw size={17} /> Sync data</button>
-      </section>
-
+    <main className="admin-page compact-admin">
       <div className="stats-grid">
-        <StatCard icon={ClipboardList} label="Pending requests" value={stats.pending} tone="warn" />
+        <StatCard icon={ClipboardList} label="Pending" value={stats.pending} tone="warn" />
         <StatCard icon={QrCode} label="Registered" value={stats.registered} tone="ok" />
         <StatCard icon={CalendarDays} label="Expired" value={stats.expired} tone="danger" />
         <StatCard icon={Archive} label="Archived" value={stats.archived} />
       </div>
 
-      <CategoryManager categories={categories} reload={reloadAll} />
-      <RequestsAdmin requests={requests} reload={reloadAll} />
-      <RegisteredAdmin items={items} categories={categories} filters={filters} setFilters={setFilters} reload={reloadAll} openItem={openItem} />
+      <div className="admin-action-row">
+        <button className={cx("section-toggle", activePanel === "quick" && "active")} onClick={() => setActivePanel("quick")}><ClipboardList size={15} /> Quick list</button>
+        <button className={cx("section-toggle", activePanel === "builder" && "active")} onClick={() => setActivePanel("builder")}><Plus size={15} /> Admin builder</button>
+        <button className={cx("section-toggle", activePanel === "requests" && "active")} onClick={() => setActivePanel("requests")}><PackageCheck size={15} /> Requests</button>
+        <button className={cx("section-toggle", activePanel === "approved" && "active")} onClick={() => setActivePanel("approved")}><QrCode size={15} /> Approved assets</button>
+        <button className="section-toggle sync" onClick={reloadAll}><RefreshCw size={15} /> Sync data</button>
+        <button className="section-toggle danger-toggle" onClick={onLogout}><LogOut size={15} /> Lock admin</button>
+      </div>
+
+      <div className="admin-panel-slot">
+        {activePanel === "quick" && <QuickList items={items} openItem={openItem} />}
+        {activePanel === "builder" && <CategoryManager categories={categories} reload={reloadAll} />}
+        {activePanel === "requests" && <RequestsAdmin requests={requests} reload={reloadAll} />}
+        {activePanel === "approved" && <RegisteredAdmin items={items} categories={categories} filters={filters} setFilters={setFilters} reload={reloadAll} openItem={openItem} />}
+      </div>
     </main>
   );
 }
@@ -850,7 +903,8 @@ export default function App() {
     return "";
   }, []);
 
-  const [tab, setTab] = useState(routeQrId ? "details" : "register");
+  const [tab, setTab] = useState(routeQrId ? "details" : "user");
+  const [userMode, setUserMode] = useState("home");
   const [selectedQrId, setSelectedQrId] = useState(routeQrId);
   const [categories, setCategories] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -858,6 +912,13 @@ export default function App() {
   const [filters, setFilters] = useState({ search: "", categoryId: "", site: "", status: "", sort: "expiry", includeArchived: false });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [theme, setTheme] = useState(() => localStorage.getItem("qr-theme") || "light");
+  const [adminUnlocked, setAdminUnlocked] = useState(() => localStorage.getItem("qr-admin-unlocked") === "true");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("qr-theme", theme);
+  }, [theme]);
 
   async function loadCategories() {
     const data = await api.categories();
@@ -906,35 +967,51 @@ export default function App() {
 
   function setMainTab(nextTab) {
     setTab(nextTab);
+    if (nextTab === "user") setUserMode("home");
     if (nextTab !== "details" && window.location.pathname.startsWith("/item/")) {
       window.history.pushState({}, "", "/");
     }
   }
 
+  function logoutAdmin() {
+    localStorage.removeItem("qr-admin-unlocked");
+    setAdminUnlocked(false);
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => setMainTab("register")}>
-          <span><ShieldCheck size={22} /></span>
+        <button className="brand" onClick={() => setMainTab("user")}>
+          <span><ShieldCheck size={20} /></span>
           <div>
             <strong>QR Asset System</strong>
             <small>Register • Approve • Scan</small>
           </div>
         </button>
-        <nav>
-          <button className={cx(tab === "register" && "active")} onClick={() => setMainTab("register")}><PackageCheck size={17} /> User</button>
-          <button className={cx(tab === "scan" && "active")} onClick={() => setMainTab("scan")}><ScanLine size={17} /> Scan</button>
-          <button className={cx(tab === "admin" && "active")} onClick={() => setMainTab("admin")}><LayoutDashboard size={17} /> Admin</button>
-        </nav>
+
+        <div className="topbar-actions">
+          <nav>
+            <button className={cx((tab === "user" || tab === "details") && "active")} onClick={() => setMainTab("user")}><UserCircle size={16} /> User</button>
+            <button className={cx(tab === "admin" && "active")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin</button>
+          </nav>
+          <button className="top-action" onClick={reloadAll}><RefreshCw size={15} /> Sync data</button>
+          <button className="top-action icon-only" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label="Toggle light and dark mode">
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
       </header>
 
       {loadError && <div className="global-error">{loadError}</div>}
-      {loading && <div className="loading-strip"><RefreshCw size={16} /> Loading QR system...</div>}
+      {loading && <div className="loading-strip"><RefreshCw size={15} /> Loading QR system...</div>}
 
-      {tab === "register" && <UserRegister categories={categories} onCreated={reloadAll} />}
-      {tab === "scan" && <ScanPage onOpenItem={openItem} />}
-      {tab === "admin" && <AdminDashboard categories={categories} requests={requests} items={items} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} />}
-      {tab === "details" && <ItemDetails qrId={selectedQrId} onBack={() => setMainTab("scan")} />}
+      <div className="view-area">
+        {tab === "user" && userMode === "home" && <UserHome onPick={setUserMode} />}
+        {tab === "user" && userMode === "register" && <UserRegister categories={categories} onCreated={reloadAll} onBack={() => setUserMode("home")} />}
+        {tab === "user" && userMode === "scan" && <ScanPage onOpenItem={openItem} onBack={() => setUserMode("home")} />}
+        {tab === "admin" && !adminUnlocked && <AdminLogin onLogin={() => setAdminUnlocked(true)} />}
+        {tab === "admin" && adminUnlocked && <AdminDashboard categories={categories} requests={requests} items={items} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} onLogout={logoutAdmin} />}
+        {tab === "details" && <ItemDetails qrId={selectedQrId} onBack={() => { setUserMode("scan"); setMainTab("user"); }} />}
+      </div>
     </div>
   );
 }

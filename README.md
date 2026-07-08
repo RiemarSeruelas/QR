@@ -1,32 +1,49 @@
 # QR Asset System MVP
 
-React + Express MVP for registering assets, approving/rejecting requests, generating one permanent QR per approved item, and checking if the item is still valid or expired.
+React + Express MVP for registering assets, approving/rejecting requests, generating one permanent QR per approved item, and checking if the item is still valid, expired, or archived.
+
+## Latest changes in this version
+
+- Top nav is now only **User** and **Admin**.
+- User default page now shows only two choices: **Register** or **Scan**.
+- Removed the long user explanation text.
+- Added **Light/Dark mode** toggle in the top bar.
+- Added global **Sync data** button in the top bar.
+- Admin now requires a password before opening.
+  - Temporary password: `1234`
+- Removed the old admin hero/description block.
+- Admin default view is now the **Expiry quick list**.
+  - It only shows the asset name/basic details.
+  - It follows the default expiry order from the backend: expired first, then closest to expiring.
+- Admin Builder, Requests, and Approved Assets are now opened by buttons instead of all showing at once.
+- Layout is more compact and uses fixed-height panels to avoid full-page scrolling.
 
 ## What is included
 
-- User registration page
+- User registration
   - User selects a category.
   - User fills the admin-defined fields.
   - User submits a request for admin approval.
 
-- Admin console
-  - Add/edit categories such as Machines, Devices, Tools.
-  - Add custom fields per category.
-  - Mandatory rule: each category must have at least one required date field.
-  - View pending requests.
-  - Approve request and generate a QR code.
-  - Reject request with note.
-  - View approved/registered list.
-  - Filter by search, category, site, status, date/expiry sorting.
-  - Default sorting: expired first, then closest to expiring.
-  - Update expiry/validity date while keeping the same QR code.
-  - Archive and restore registered items.
-
-- QR scanner/detail page
+- QR scanning
   - Built-in camera scanner using `html5-qrcode`.
   - Manual QR input fallback.
   - Scanning the QR opens the item detail page.
   - Detail page clearly shows GOOD, EXPIRED, or ARCHIVED.
+
+- Admin console
+  - Password gate.
+  - Expiry quick list.
+  - Add/edit categories such as Machines, Devices, Tools.
+  - Add custom fields per category.
+  - Mandatory rule: each category must have at least one required date field.
+  - View pending requests.
+  - Approve request and generate a permanent QR code.
+  - Reject request with note.
+  - View approved/registered list.
+  - Filter by search, category, site, status, date/expiry sorting.
+  - Update expiry/validity date while keeping the same QR code.
+  - Archive and restore registered items.
 
 - Backend JSON storage
   - Data is stored in `server/data/db.json`.

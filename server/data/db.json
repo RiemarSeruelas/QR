@@ -2,7 +2,7 @@
   "meta": {
     "appName": "QR Asset System",
     "version": 1,
-    "updatedAt": "2026-07-08T00:00:00.000Z"
+    "updatedAt": "2026-07-08T05:54:03.478Z"
   },
   "categories": [
     {
@@ -10,11 +10,39 @@
       "name": "Machines",
       "description": "Production machines and major fixed equipment",
       "fields": [
-        { "id": "field-area", "label": "Area", "type": "text", "required": true, "placeholder": "Example: Savoury / Dressings" },
-        { "id": "field-line", "label": "Line", "type": "text", "required": false, "placeholder": "Example: CL3" },
-        { "id": "field-model", "label": "Model", "type": "text", "required": false, "placeholder": "Machine model" },
-        { "id": "field-last-pm", "label": "Last PM Date", "type": "date", "required": false },
-        { "id": "field-next-check", "label": "Next Check Date", "type": "date", "required": true }
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
       ],
       "createdAt": "2026-07-08T00:00:00.000Z"
     },
@@ -23,9 +51,24 @@
       "name": "Devices",
       "description": "Portable devices, instruments, tablets, sensors, and similar assets",
       "fields": [
-        { "id": "field-serial", "label": "Serial Number", "type": "text", "required": true },
-        { "id": "field-owner", "label": "Owner / Custodian", "type": "text", "required": false },
-        { "id": "field-next-calibration", "label": "Next Calibration Date", "type": "date", "required": true }
+        {
+          "id": "field-serial",
+          "label": "Serial Number",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "field-owner",
+          "label": "Owner / Custodian",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "field-next-calibration",
+          "label": "Next Calibration Date",
+          "type": "date",
+          "required": true
+        }
       ],
       "createdAt": "2026-07-08T00:00:00.000Z"
     },
@@ -34,12 +77,83 @@
       "name": "Tools",
       "description": "Tools that need registration, tracking, or validity checks",
       "fields": [
-        { "id": "field-condition", "label": "Condition", "type": "select", "required": true, "options": ["Good", "Needs Repair", "For Checking"] },
-        { "id": "field-next-inspection", "label": "Next Inspection Date", "type": "date", "required": true }
+        {
+          "id": "field-condition",
+          "label": "Condition",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Good",
+            "Needs Repair",
+            "For Checking"
+          ]
+        },
+        {
+          "id": "field-next-inspection",
+          "label": "Next Inspection Date",
+          "type": "date",
+          "required": true
+        }
       ],
       "createdAt": "2026-07-08T00:00:00.000Z"
     }
   ],
-  "requests": [],
+  "requests": [
+    {
+      "id": "req-JR55M185",
+      "itemName": "Second",
+      "itemCode": "2",
+      "site": "Savoury",
+      "submittedBy": "Riemar",
+      "categoryId": "cat-machines",
+      "categoryName": "Machines",
+      "values": {
+        "field-area": "Savoury",
+        "field-line": "Second",
+        "field-model": "Second",
+        "field-last-pm": "2026-07-01",
+        "field-next-check": "2026-08-05"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "status": "rejected",
+      "submittedAt": "2026-07-08T05:53:46.653Z",
+      "reviewedAt": "2026-07-08T05:54:03.477Z",
+      "reviewNote": ""
+    }
+  ],
   "items": []
 }

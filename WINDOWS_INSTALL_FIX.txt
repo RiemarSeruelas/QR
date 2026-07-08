@@ -1,0 +1,18 @@
+WINDOWS INSTALL FIX
+
+If npm install tries to download from packages.applied-caas-gateway1.internal.api.openai.org, remove the old lock file and reset npm registry:
+
+1. Close VS Code, terminals, and running node processes.
+2. In PowerShell inside this project folder, run:
+
+   npm config set registry https://registry.npmjs.org/
+   npm config delete proxy
+   npm config delete https-proxy
+   taskkill /F /IM node.exe
+   rmdir /s /q node_modules
+   del package-lock.json
+   npm cache clean --force
+   npm install
+   npm run dev
+
+This project intentionally does not include package-lock.json, because the first ZIP was generated in an environment that wrote internal registry URLs into the lock file.
