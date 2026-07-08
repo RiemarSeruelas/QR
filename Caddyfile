@@ -1,0 +1,27 @@
+# Build the frontend first:
+# npm run build
+#
+# Then run the backend:
+# npm run server
+#
+# Then run Caddy from this project folder:
+# caddy run
+#
+# For mobile camera scanning over LAN, use HTTPS.
+# Replace the address below with your PC/server LAN IP if needed.
+
+:8443 {
+  tls internal
+
+  root * ./dist
+  encode gzip
+
+  handle /api/* {
+    reverse_proxy localhost:5057
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}

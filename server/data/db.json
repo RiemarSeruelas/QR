@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "appName": "QR Asset System",
+    "version": 1,
+    "updatedAt": "2026-07-08T00:00:00.000Z"
+  },
+  "categories": [
+    {
+      "id": "cat-machines",
+      "name": "Machines",
+      "description": "Production machines and major fixed equipment",
+      "fields": [
+        { "id": "field-area", "label": "Area", "type": "text", "required": true, "placeholder": "Example: Savoury / Dressings" },
+        { "id": "field-line", "label": "Line", "type": "text", "required": false, "placeholder": "Example: CL3" },
+        { "id": "field-model", "label": "Model", "type": "text", "required": false, "placeholder": "Machine model" },
+        { "id": "field-last-pm", "label": "Last PM Date", "type": "date", "required": false },
+        { "id": "field-next-check", "label": "Next Check Date", "type": "date", "required": true }
+      ],
+      "createdAt": "2026-07-08T00:00:00.000Z"
+    },
+    {
+      "id": "cat-devices",
+      "name": "Devices",
+      "description": "Portable devices, instruments, tablets, sensors, and similar assets",
+      "fields": [
+        { "id": "field-serial", "label": "Serial Number", "type": "text", "required": true },
+        { "id": "field-owner", "label": "Owner / Custodian", "type": "text", "required": false },
+        { "id": "field-next-calibration", "label": "Next Calibration Date", "type": "date", "required": true }
+      ],
+      "createdAt": "2026-07-08T00:00:00.000Z"
+    },
+    {
+      "id": "cat-tools",
+      "name": "Tools",
+      "description": "Tools that need registration, tracking, or validity checks",
+      "fields": [
+        { "id": "field-condition", "label": "Condition", "type": "select", "required": true, "options": ["Good", "Needs Repair", "For Checking"] },
+        { "id": "field-next-inspection", "label": "Next Inspection Date", "type": "date", "required": true }
+      ],
+      "createdAt": "2026-07-08T00:00:00.000Z"
+    }
+  ],
+  "requests": [],
+  "items": []
+}
