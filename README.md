@@ -5,10 +5,10 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
 ## Latest changes in this version
 
 - Top nav is now only **User** and **Admin**.
-- User default page now shows only two choices: **Register** or **Scan**.
+- User default page now shows **Register**, **Scan**, and a compact Reference ID checker.
 - Removed the long user explanation text.
 - Added **Light/Dark mode** toggle in the top bar.
-- Added global **Sync data** button in the top bar.
+- Removed manual **Sync data**. The app now auto-refreshes every few seconds for live request/status updates.
 - Admin now requires a password before opening.
   - Temporary password: `1234`
 - Removed the old admin hero/description block.
@@ -16,7 +16,9 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
   - It only shows the asset name/basic details.
   - It follows the default expiry order from the backend: expired first, then closest to expiring.
 - Admin Builder, Requests, and Approved Assets are now opened by buttons instead of all showing at once.
-- Layout is more compact and uses fixed-height panels to avoid full-page scrolling.
+- Layout is smaller and cleaner from the root CSS, with fixed-height panels to avoid full-page scrolling.
+- Each new registration gets a `REF-XXXXXXXX` Reference ID for checking Pending / Accepted / Rejected status.
+- Admin Builder supports an `image` field type stored as base64 in the JSON DB.
 
 ## What is included
 
@@ -24,6 +26,7 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
   - User selects a category.
   - User fills the admin-defined fields.
   - User submits a request for admin approval.
+  - System returns a Reference ID that the user can check later.
 
 - QR scanning
   - Built-in camera scanner using `html5-qrcode`.
@@ -37,6 +40,7 @@ React + Express MVP for registering assets, approving/rejecting requests, genera
   - Add/edit categories such as Machines, Devices, Tools.
   - Add custom fields per category.
   - Mandatory rule: each category must have at least one required date field.
+  - Add image fields; images are saved as base64 in `server/data/db.json` for now.
   - View pending requests.
   - Approve request and generate a permanent QR code.
   - Reject request with note.
@@ -135,11 +139,12 @@ server/data/db.json
 This file stores:
 
 - categories
-- requests
+- requests, including Reference IDs and review status
 - approved items
 - QR IDs
 - QR payload URL
 - QR image data URL
+- base64 image field values
 - expiry date
 - archive status
 

@@ -13,7 +13,7 @@ const PORT = Number(process.env.PORT || 5057);
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 8);
 
 app.use(cors());
-app.use(express.json({ limit: "3mb" }));
+app.use(express.json({ limit: "20mb" }));
 
 function nowIso() {
   return new Date().toISOString();
@@ -68,7 +68,7 @@ function validateCategoryPayload(body, existingId) {
     .map((field, index) => {
       const label = normalizeText(field.label);
       if (!label) return null;
-      const type = ["text", "number", "date", "textarea", "select"].includes(field.type) ? field.type : "text";
+      const type = ["text", "number", "date", "textarea", "select", "image"].includes(field.type) ? field.type : "text";
       const options = type === "select"
         ? (Array.isArray(field.options) ? field.options : String(field.options || "").split("\n"))
             .map(normalizeText)
@@ -131,6 +131,7 @@ function validateRequestPayload(db, body) {
   return {
     request: {
       id: `req-${nanoid()}`,
+      referenceId: `REF-${nanoid()}`,
       itemName,
       itemCode,
       site,
@@ -221,6 +222,35 @@ app.get("/api/requests", async (req, res) => {
   if (status) requests = requests.filter((entry) => entry.status === status);
   requests = requests.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
   res.json(requests);
+});
+
+
+app.get("/api/requests/reference/:referenceId", async (req, res) => {
+  const db = await readDb();
+  const referenceId = normalizeText(req.params.referenceId).toUpperCase();
+  const request = (db.requests || []).find((entry) =>
+    normalizeText(entry.referenceId || entry.id).toUpperCase() === referenceId
+  );
+  if (!request) return res.status(404).json({ error: "Reference ID not found." });
+
+  const item = request.itemId
+    ? (db.items || []).find((entry) => entry.id === request.itemId)
+    : null;
+
+  res.json({
+    referenceId: request.referenceId || request.id,
+    itemName: request.itemName,
+    itemCode: request.itemCode,
+    site: request.site,
+    categoryName: request.categoryName,
+    status: request.status === "approved" ? "accepted" : request.status === "rejected" ? "rejected" : "pending",
+    submittedAt: request.submittedAt,
+    reviewedAt: request.reviewedAt,
+    reviewNote: request.reviewNote || "",
+    qrId: item?.qrId || "",
+    expiresAt: item?.expiresAt || "",
+    validity: item ? getItemValidity(item) : null
+  });
 });
 
 app.post("/api/requests/:id/approve", async (req, res) => {

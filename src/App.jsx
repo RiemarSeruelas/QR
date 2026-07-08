@@ -28,7 +28,7 @@ import { api } from "./api.js";
 
 const ADMIN_PASSWORD = "1234";
 const EMPTY_FIELD = { label: "", type: "text", required: false, placeholder: "", optionsText: "" };
-const FIELD_TYPES = ["text", "number", "date", "textarea", "select"];
+const FIELD_TYPES = ["text", "number", "date", "textarea", "select", "image"];
 
 function formatDate(value) {
   if (!value) return "—";
@@ -87,11 +87,44 @@ function StatCard({ icon: Icon, label, value, tone = "default" }) {
 
 function StatusBadge({ validity, status }) {
   const finalStatus = status || validity?.status || "unknown";
-  const label = finalStatus === "valid" ? "Good" : finalStatus === "expired" ? "Expired" : finalStatus === "archived" ? "Archived" : finalStatus;
-  return <span className={cx("status-badge", finalStatus)}>{label}</span>;
+  const labels = {
+    valid: "Good",
+    expired: "Expired",
+    archived: "Archived",
+    approved: "Accepted",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    pending: "Pending"
+  };
+  return <span className={cx("status-badge", finalStatus)}>{labels[finalStatus] || finalStatus}</span>;
 }
 
 function FieldInput({ field, value, onChange }) {
+  if (field.type === "image") {
+    function handleFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file.");
+        event.target.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => onChange(field.id, String(reader.result || ""));
+      reader.readAsDataURL(file);
+    }
+
+    return (
+      <div className="image-input-box">
+        {value ? <img src={value} alt={field.label} className="image-preview" /> : <div className="image-placeholder">No image</div>}
+        <div className="image-input-actions">
+          <input id={field.id} type="file" accept="image/*" required={field.required && !value} onChange={handleFile} />
+          {value && <button type="button" className="ghost-btn tiny" onClick={() => onChange(field.id, "")}>Remove</button>}
+        </div>
+      </div>
+    );
+  }
+
   const commonProps = {
     id: field.id,
     value: value ?? "",
@@ -100,7 +133,7 @@ function FieldInput({ field, value, onChange }) {
     onChange: (event) => onChange(field.id, event.target.value)
   };
 
-  if (field.type === "textarea") return <textarea {...commonProps} rows={3} />;
+  if (field.type === "textarea") return <textarea {...commonProps} rows={2} />;
 
   if (field.type === "select") {
     return (
@@ -131,12 +164,19 @@ function FieldRows({ fields = [], values = {}, compact = false }) {
 
   return (
     <div className={compact ? "detail-lines compact" : "details-lines-full"}>
-      {rows.map((row) => (
-        <div key={row.id} className={compact ? undefined : "detail-line"}>
-          <span>{row.label}</span>
-          <strong>{row.type === "date" ? formatDate(row.value) : (row.value || "—")}</strong>
-        </div>
-      ))}
+      {rows.map((row) => {
+        const isImage = row.type === "image" && row.value;
+        return (
+          <div key={row.id} className={cx(compact ? undefined : "detail-line", isImage && "image-line")}>
+            <span>{row.label}</span>
+            {isImage ? (
+              <img src={row.value} alt={row.label} className="stored-image" />
+            ) : (
+              <strong>{row.type === "date" ? formatDate(row.value) : (row.value || "—")}</strong>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -151,19 +191,68 @@ function EmptyState({ icon: Icon = ClipboardList, title, message }) {
   );
 }
 
+function ReferenceCheck() {
+  const [referenceId, setReferenceId] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function checkReference(event) {
+    event.preventDefault();
+    const finalReference = referenceId.trim().toUpperCase();
+    if (!finalReference) return;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    try {
+      const data = await api.requestByReference(finalReference);
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="reference-card">
+      <form onSubmit={checkReference} className="reference-form">
+        <label>
+          Check request reference
+          <input value={referenceId} onChange={(event) => setReferenceId(event.target.value)} placeholder="REF-XXXXXXXX" />
+        </label>
+        <button className="secondary-btn" disabled={busy}>{busy ? "Checking" : "Check"}</button>
+      </form>
+      {error && <div className="notice error compact-notice">{error}</div>}
+      {result && (
+        <div className={cx("reference-result", result.status)}>
+          <div>
+            <strong>{result.itemName}</strong>
+            <span>{result.referenceId} • {result.site}</span>
+          </div>
+          <span className={cx("status-badge", result.status)}>{result.status === "accepted" ? "Accepted" : result.status === "rejected" ? "Rejected" : "Pending"}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function UserHome({ onPick }) {
   return (
     <main className="choice-page">
-      <button className="choice-card" onClick={() => onPick("register")}>
-        <PackageCheck size={34} />
-        <strong>Register</strong>
-        <span>Submit a machine, device, or tool for admin approval.</span>
-      </button>
-      <button className="choice-card" onClick={() => onPick("scan")}>
-        <ScanLine size={34} />
-        <strong>Scan</strong>
-        <span>Check if a QR item is still good, expired, or archived.</span>
-      </button>
+      <div className="choice-grid">
+        <button className="choice-card" onClick={() => onPick("register")}>
+          <PackageCheck size={28} />
+          <strong>Register</strong>
+          <span>Submit an item for approval.</span>
+        </button>
+        <button className="choice-card" onClick={() => onPick("scan")}>
+          <ScanLine size={28} />
+          <strong>Scan</strong>
+          <span>Check QR validity.</span>
+        </button>
+      </div>
+      <ReferenceCheck />
     </main>
   );
 }
@@ -201,8 +290,12 @@ function UserRegister({ categories, onCreated, onBack }) {
     setBusy(true);
     setMessage(null);
     try {
-      await api.createRequest(form);
-      setMessage({ type: "success", text: "Request submitted. Admin can now review it." });
+      const created = await api.createRequest(form);
+      setMessage({
+        type: "success",
+        text: `Request submitted. Save this reference ID: ${created.referenceId}` ,
+        referenceId: created.referenceId
+      });
       setForm({ itemName: "", itemCode: "", site: "", submittedBy: "", categoryId: form.categoryId, values: {} });
       onCreated?.();
     } catch (error) {
@@ -223,7 +316,12 @@ function UserRegister({ categories, onCreated, onBack }) {
           <button type="button" className="ghost-btn small" onClick={onBack}>Back</button>
         </div>
 
-        {message && <div className={cx("notice", message.type)}>{message.text}</div>}
+        {message && (
+          <div className={cx("notice", message.type)}>
+            <span>{message.text}</span>
+            {message.referenceId && <strong className="reference-chip">{message.referenceId}</strong>}
+          </div>
+        )}
 
         <form onSubmit={submit} className="stack-form compact-form">
           <div className="form-row two">
@@ -630,7 +728,7 @@ function RequestCard({ request, onAction }) {
         <div>
           <p className="eyebrow">{request.categoryName}</p>
           <h3>{request.itemName}</h3>
-          <span>ID: {request.itemCode} • {request.site}</span>
+          <span>Ref: {request.referenceId || request.id} • ID: {request.itemCode} • {request.site}</span>
         </div>
         <StatusBadge status={request.status} />
       </div>
@@ -672,7 +770,7 @@ function RequestsAdmin({ requests, reload }) {
           <p className="eyebrow">Approval queue</p>
           <h2>Requests</h2>
         </div>
-        <button className="ghost-btn small" onClick={reload}><RefreshCw size={15} /> Refresh</button>
+        <span className="live-small">Auto updates</span>
       </div>
 
       {pending.length === 0 ? (
@@ -771,7 +869,7 @@ function RegisteredAdmin({ items, categories, filters, setFilters, reload, openI
           <p className="eyebrow">Registered QR list</p>
           <h2>Approved assets</h2>
         </div>
-        <button className="ghost-btn small" onClick={reload}><RefreshCw size={15} /> Refresh</button>
+        <span className="live-small">Auto updates</span>
       </div>
 
       <div className="filter-bar">
@@ -882,7 +980,6 @@ function AdminDashboard({ categories, requests, items, filters, setFilters, relo
         <button className={cx("section-toggle", activePanel === "builder" && "active")} onClick={() => setActivePanel("builder")}><Plus size={15} /> Admin builder</button>
         <button className={cx("section-toggle", activePanel === "requests" && "active")} onClick={() => setActivePanel("requests")}><PackageCheck size={15} /> Requests</button>
         <button className={cx("section-toggle", activePanel === "approved" && "active")} onClick={() => setActivePanel("approved")}><QrCode size={15} /> Approved assets</button>
-        <button className="section-toggle sync" onClick={reloadAll}><RefreshCw size={15} /> Sync data</button>
         <button className="section-toggle danger-toggle" onClick={onLogout}><LogOut size={15} /> Lock admin</button>
       </div>
 
@@ -935,12 +1032,12 @@ export default function App() {
     setItems(data);
   }
 
-  async function reloadAll() {
-    setLoadError("");
+  async function reloadAll({ silent = false } = {}) {
+    if (!silent) setLoadError("");
     try {
-      await Promise.all([loadCategories(), loadRequests(), loadItems()]);
+      await Promise.all([loadCategories(), loadRequests(), loadItems(filters)]);
     } catch (error) {
-      setLoadError(error.message);
+      if (!silent) setLoadError(error.message);
     } finally {
       setLoading(false);
     }
@@ -953,6 +1050,14 @@ export default function App() {
 
   useEffect(() => {
     loadItems(filters).catch((error) => setLoadError(error.message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.categoryId, filters.site, filters.status, filters.sort, filters.includeArchived]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      reloadAll({ silent: true });
+    }, 3000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.categoryId, filters.site, filters.status, filters.sort, filters.includeArchived]);
 
@@ -994,7 +1099,7 @@ export default function App() {
             <button className={cx((tab === "user" || tab === "details") && "active")} onClick={() => setMainTab("user")}><UserCircle size={16} /> User</button>
             <button className={cx(tab === "admin" && "active")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin</button>
           </nav>
-          <button className="top-action" onClick={reloadAll}><RefreshCw size={15} /> Sync data</button>
+          <span className="live-pill">Live</span>
           <button className="top-action icon-only" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label="Toggle light and dark mode">
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>

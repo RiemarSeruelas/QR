@@ -2,7 +2,7 @@
   "meta": {
     "appName": "QR Asset System",
     "version": 1,
-    "updatedAt": "2026-07-08T05:54:03.478Z"
+    "updatedAt": "2026-07-08T06:06:32.791Z"
   },
   "categories": [
     {
@@ -100,19 +100,20 @@
   ],
   "requests": [
     {
-      "id": "req-JR55M185",
-      "itemName": "Second",
-      "itemCode": "2",
+      "id": "req-83OCMR9S",
+      "referenceId": "REF-0NO504MY",
+      "itemName": "Third",
+      "itemCode": "Third",
       "site": "Savoury",
       "submittedBy": "Riemar",
       "categoryId": "cat-machines",
       "categoryName": "Machines",
       "values": {
         "field-area": "Savoury",
-        "field-line": "Second",
-        "field-model": "Second",
-        "field-last-pm": "2026-07-01",
-        "field-next-check": "2026-08-05"
+        "field-line": "Third",
+        "field-model": "Third",
+        "field-last-pm": "2026-07-09",
+        "field-next-check": "2026-07-10"
       },
       "fieldsSnapshot": [
         {
@@ -149,11 +150,73 @@
           "required": true
         }
       ],
-      "status": "rejected",
-      "submittedAt": "2026-07-08T05:53:46.653Z",
-      "reviewedAt": "2026-07-08T05:54:03.477Z",
-      "reviewNote": ""
+      "status": "approved",
+      "submittedAt": "2026-07-08T06:06:11.886Z",
+      "reviewedAt": "2026-07-08T06:06:32.790Z",
+      "reviewNote": "",
+      "itemId": "asset-CBWOASGB"
     }
   ],
-  "items": []
+  "items": [
+    {
+      "id": "asset-CBWOASGB",
+      "qrId": "QR-1PQKV8OY",
+      "qrPayload": "http://localhost:5057/item/QR-1PQKV8OY",
+      "qrImageDataUrl": "data:image/png;base64,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",
+      "itemName": "Third",
+      "itemCode": "Third",
+      "site": "Savoury",
+      "categoryId": "cat-machines",
+      "categoryName": "Machines",
+      "values": {
+        "field-area": "Savoury",
+        "field-line": "Third",
+        "field-model": "Third",
+        "field-last-pm": "2026-07-09",
+        "field-next-check": "2026-07-10"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "submittedBy": "Riemar",
+      "requestId": "req-83OCMR9S",
+      "registeredAt": "2026-07-08T06:06:32.790Z",
+      "approvedAt": "2026-07-08T06:06:32.790Z",
+      "expiresAt": "2026-07-10",
+      "archivedAt": null,
+      "reviewNote": ""
+    }
+  ]
 }

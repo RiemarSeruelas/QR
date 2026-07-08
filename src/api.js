@@ -25,6 +25,7 @@ export const api = {
   deleteCategory: (id) => request(`/categories/${id}`, { method: "DELETE" }),
   createRequest: (payload) => request("/requests", { method: "POST", body: JSON.stringify(payload) }),
   requests: (status = "") => request(`/requests${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  requestByReference: (referenceId) => request(`/requests/reference/${encodeURIComponent(referenceId)}`),
   approveRequest: (id, payload) => request(`/requests/${id}/approve`, { method: "POST", body: JSON.stringify(payload) }),
   rejectRequest: (id, payload) => request(`/requests/${id}/reject`, { method: "POST", body: JSON.stringify(payload) }),
   items: (params = {}) => {
