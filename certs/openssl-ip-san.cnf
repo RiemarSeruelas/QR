@@ -1,0 +1,35 @@
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = req_ext
+
+[dn]
+C = PH
+ST = Cavite
+L = Cavite
+O = Unilever
+OU = Factory
+CN = QR System Multi Network
+
+[req_ext]
+subjectAltName = @alt_names
+
+[v3_req]
+subjectAltName = @alt_names
+basicConstraints = CA:FALSE
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[alt_names]
+# Current test Wi-Fi IP. Change/regenerate when your host IP changes.
+IP.1 = 192.168.0.242
+
+# Planned factory network IPs.
+IP.2 = 172.27.1.92
+IP.3 = 10.156.119.146
+
+# Local testing.
+IP.4 = 127.0.0.1
+DNS.1 = localhost

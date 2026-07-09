@@ -1,5 +1,0 @@
-:8443 {
-  tls internal
-  encode gzip
-  reverse_proxy qr-system:5057
-}

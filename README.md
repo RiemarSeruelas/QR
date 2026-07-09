@@ -2,32 +2,23 @@
 
 React + Express MVP for registering assets, approving/rejecting requests, generating one permanent QR per approved item, and checking if the item is still valid, expired, or archived.
 
-## Current deployment mode
+## Current camera mode
 
-This version is cleaned for **normal HTTP Docker deployment**.
+This version does **not** use continuous live video scanning. It works on normal HTTP without Caddy, HTTPS, or certificates.
 
-- Use `docker compose up --build`.
-- Open the app on the server PC with `http://localhost:5057`.
-- Open the app on phones/other PCs with `http://YOUR-PC-IP:5057`.
-- No Caddy files are included in this version.
-- No certificate is required for the phone camera-upload flow.
+Follow up behavior:
 
-## Camera behavior
+- **Phone/tablet:** tap **Take / upload QR photo**. The device camera opens, the user takes one QR photo, then the app reads the QR from that image.
+- **PC/laptop:** upload a QR image file.
+- **Everyone:** can manually enter QR ID, scanned URL, or Reference ID.
 
-This version is set for **HTTP factory/LAN mode**.
-
-- **Mobile users:** Follow up opens the phone camera through the native camera picker, then the app reads the QR photo.
-- **PC/laptop users:** Follow up only allows QR image upload/manual input.
-- Uploaded/scanned QR photos show a preview frame while scanning and a detected QR marker before opening the item.
-- The PC live webcam button was removed to avoid confusing users on LAN HTTP.
-
-True in-page live camera streaming for both phone and PC still requires HTTPS. This HTTP version uses the browser-safe camera/photo flow for mobile and upload flow for PC.
+After a QR photo/image is selected, the app now runs a more forgiving scan: native barcode detection, full-image scan, cropped-region scan, high-contrast scan, brightened scan, threshold scan, and an html5-qrcode fallback. When it finds a QR, it shows a preview and draws a green detection border around the QR code it used when position data is available.
 
 ## Main features
 
 - User page
   - Register an item.
-  - Follow up using mobile camera/photo upload, PC image upload, QR ID, scanned URL, or Reference ID.
+  - Follow up using phone/tablet camera photo capture, PC image upload, QR ID, scanned URL, or Reference ID.
   - Reference ID shows Pending / Accepted / Rejected.
   - Accepted references show the generated QR code and a Download QR button.
   - Item detail pages show a compact QR code and Reference ID inside the validity banner.
@@ -79,51 +70,37 @@ http://localhost:5057
 Create `.env` beside `docker-compose.yml`:
 
 ```env
-PUBLIC_APP_URL=http://YOUR-PC-IP:5057
+PUBLIC_APP_URL=
+QR_PAYLOAD_MODE=code
 ```
 
-Example:
-
-```env
-PUBLIC_APP_URL=http://192.168.254.109:5057
-```
-
-Run:
+Then run:
 
 ```powershell
 docker compose up --build
 ```
 
-Open:
+Open on the host PC:
 
 ```txt
 http://localhost:5057
 ```
 
-Or from phone/other PC:
+Open from phone/tablet/other PC on the same network:
 
 ```txt
 http://YOUR-PC-IP:5057
 ```
 
-## Important before approving real QR codes
+Example:
 
-Set `PUBLIC_APP_URL` before approving real assets, because the QR image stores that URL.
-
-If you approve QR codes while using `localhost`, the QR image will point to `localhost`, which will not work from phones.
-
-Use a stable LAN URL instead:
-
-```env
-PUBLIC_APP_URL=http://192.168.254.109:5057
+```txt
+http://192.168.0.242:5057
 ```
 
-Then restart Docker:
+## Why `QR_PAYLOAD_MODE=code`
 
-```powershell
-docker compose down
-docker compose up --build
-```
+The QR stores only the QR ID, not one fixed IP URL. Users open the app first, then use Follow up to scan the QR photo/image. This makes the same physical QR work even if the app later moves to another IP.
 
 ## JSON database location
 
@@ -137,7 +114,6 @@ This file stores:
 - requests, including Reference IDs and review status
 - approved items
 - QR IDs
-- QR payload URL
 - QR image data URL
 - base64 image field values
 - expiry date
@@ -155,3 +131,8 @@ When replacing JSON storage with a real DB, keep these main tables/collections:
 - `asset_archive_logs`
 
 The frontend should not need major changes as long as the API responses stay the same.
+
+
+## QR scanning note
+
+This build uses a faster photo/upload scan path. It first tries the browser native barcode detector, then a small number of downscaled smart crops. It fails fast instead of scanning for minutes. If it cannot read the QR, retake the photo with the full QR visible and make the QR fill more of the image.

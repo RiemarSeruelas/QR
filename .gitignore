@@ -29,13 +29,13 @@ tmp/
 temp/
 
 # Certificates / private keys
-certs/
-*.key
-*.crt
-*.pem
-*.pfx
-*.p12
-*.csr
+certs/*.key
+certs/*.crt
+certs/*.pem
+certs/*.pfx
+certs/*.p12
+certs/*.csr
+certs/*.srl
 
 # Docker / Caddy local data
 caddy_data/

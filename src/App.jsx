@@ -374,7 +374,10 @@ function ScanPage({ onOpenItem, onBack }) {
   const [scanPreview, setScanPreview] = useState(null);
   const isMobileDevice = useMemo(() => {
     if (typeof navigator === "undefined") return false;
-    return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || "");
+    const ua = navigator.userAgent || "";
+    const platform = navigator.platform || "";
+    const iPadLike = platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
+    return iPadLike || /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua);
   }, []);
 
   useEffect(() => {
@@ -391,6 +394,275 @@ function ScanPage({ onOpenItem, onBack }) {
     onOpenItem(qrId);
   }
 
+  function pickLargestBox(boxes = []) {
+    return [...boxes].sort((a, b) => (b.width * b.height) - (a.width * a.height))[0] || null;
+  }
+
+  function boxFromQrLocation(location) {
+    if (!location) return null;
+    const points = [
+      location.topLeftCorner,
+      location.topRightCorner,
+      location.bottomRightCorner,
+      location.bottomLeftCorner,
+      location.topLeftFinderPattern,
+      location.topRightFinderPattern,
+      location.bottomLeftFinderPattern
+    ].filter(Boolean);
+
+    if (!points.length) return null;
+
+    const xs = points.map((point) => point.x).filter((value) => Number.isFinite(value));
+    const ys = points.map((point) => point.y).filter((value) => Number.isFinite(value));
+    if (!xs.length || !ys.length) return null;
+
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY)
+    };
+  }
+
+  async function loadImageElement(file) {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.decoding = "async";
+
+    try {
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
+
+      const naturalWidth = image.naturalWidth || image.width;
+      const naturalHeight = image.naturalHeight || image.height;
+      if (!naturalWidth || !naturalHeight) throw new Error("Could not read image size.");
+
+      return { image, naturalWidth, naturalHeight, objectUrl };
+    } catch (err) {
+      URL.revokeObjectURL(objectUrl);
+      throw err;
+    }
+  }
+
+  function getCanvasDataFromImage(image, sourceSize, crop, maxDimension = 2400) {
+    const scale = Math.min(1, maxDimension / Math.max(crop.sw, crop.sh));
+    const width = Math.max(1, Math.round(crop.sw * scale));
+    const height = Math.max(1, Math.round(crop.sh * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) throw new Error("Could not read image pixels.");
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+
+    return {
+      imageData: context.getImageData(0, 0, width, height),
+      canvasSize: { width, height },
+      imageSize: sourceSize,
+      crop
+    };
+  }
+
+  function getPercentileFromHistogram(histogram, total, percentile) {
+    const target = Math.max(0, Math.min(total - 1, Math.floor(total * percentile)));
+    let cumulative = 0;
+    for (let value = 0; value < histogram.length; value += 1) {
+      cumulative += histogram[value];
+      if (cumulative > target) return value;
+    }
+    return 255;
+  }
+
+  function getOtsuThreshold(histogram, total) {
+    let sum = 0;
+    for (let i = 0; i < 256; i += 1) sum += i * histogram[i];
+
+    let sumBackground = 0;
+    let weightBackground = 0;
+    let bestVariance = -1;
+    let threshold = 128;
+
+    for (let i = 0; i < 256; i += 1) {
+      weightBackground += histogram[i];
+      if (!weightBackground) continue;
+
+      const weightForeground = total - weightBackground;
+      if (!weightForeground) break;
+
+      sumBackground += i * histogram[i];
+      const meanBackground = sumBackground / weightBackground;
+      const meanForeground = (sum - sumBackground) / weightForeground;
+      const variance = weightBackground * weightForeground * ((meanBackground - meanForeground) ** 2);
+
+      if (variance > bestVariance) {
+        bestVariance = variance;
+        threshold = i;
+      }
+    }
+
+    return threshold;
+  }
+
+  function enhanceImageData(imageData, mode) {
+    if (mode === "normal") return imageData;
+
+    const { width, height, data } = imageData;
+    const output = new Uint8ClampedArray(data.length);
+    const histogram = new Array(256).fill(0);
+    const totalPixels = width * height;
+
+    for (let index = 0; index < data.length; index += 4) {
+      const lum = Math.max(0, Math.min(255, Math.round((data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114))));
+      histogram[lum] += 1;
+    }
+
+    const low = getPercentileFromHistogram(histogram, totalPixels, 0.03);
+    const high = Math.max(low + 8, getPercentileFromHistogram(histogram, totalPixels, 0.97));
+    const threshold = getOtsuThreshold(histogram, totalPixels);
+
+    for (let index = 0; index < data.length; index += 4) {
+      const lum = Math.max(0, Math.min(255, Math.round((data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114))));
+      let value;
+
+      if (mode === "threshold") {
+        value = lum > threshold ? 255 : 0;
+      } else if (mode === "highContrast") {
+        const stretched = ((lum - low) / (high - low)) * 255;
+        value = Math.max(0, Math.min(255, Math.round(((stretched - 128) * 1.28) + 128)));
+      } else if (mode === "brightContrast") {
+        const stretched = ((lum - low) / (high - low)) * 255;
+        value = Math.max(0, Math.min(255, Math.round((stretched * 1.12) + 14)));
+      } else {
+        value = lum;
+      }
+
+      output[index] = value;
+      output[index + 1] = value;
+      output[index + 2] = value;
+      output[index + 3] = data[index + 3];
+    }
+
+    return new ImageData(output, width, height);
+  }
+
+  function translateCanvasBoxToSource(box, canvasData) {
+    if (!box) return null;
+    const { crop, canvasSize } = canvasData;
+    const scaleX = crop.sw / canvasSize.width;
+    const scaleY = crop.sh / canvasSize.height;
+
+    return {
+      x: crop.sx + (box.x * scaleX),
+      y: crop.sy + (box.y * scaleY),
+      width: Math.max(1, box.width * scaleX),
+      height: Math.max(1, box.height * scaleY)
+    };
+  }
+
+  function withTimeout(promise, ms, label = "Operation") {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error(`${label} timed out.`)), ms);
+      })
+    ]);
+  }
+
+  function makeCropPlans(width, height) {
+    const plans = [];
+    const seen = new Set();
+    const addPlan = (name, sx, sy, sw, sh, maxDimension = 1200, modes = ["normal"]) => {
+      const safeSw = Math.min(width, Math.max(120, sw));
+      const safeSh = Math.min(height, Math.max(120, sh));
+      const safeSx = Math.max(0, Math.min(width - safeSw, sx));
+      const safeSy = Math.max(0, Math.min(height - safeSh, sy));
+      const key = [safeSx, safeSy, safeSw, safeSh].map((value) => Math.round(value / 20) * 20).join(":");
+      if (seen.has(key)) return;
+      seen.add(key);
+      plans.push({ name, sx: safeSx, sy: safeSy, sw: safeSw, sh: safeSh, maxDimension, modes });
+    };
+
+    // Keep the default scan intentionally small. Huge phone photos were making
+    // jsQR spend minutes on pixels, so we downscale and scan fewer smart regions.
+    addPlan("full", 0, 0, width, height, 1280, ["normal", "highContrast"]);
+
+    [0.78, 0.58].forEach((ratio) => {
+      const sw = width * ratio;
+      const sh = height * ratio;
+      addPlan(`center-${Math.round(ratio * 100)}`, (width - sw) / 2, (height - sh) / 2, sw, sh, 1350, ["normal", "highContrast"]);
+    });
+
+    // Quick 3x3 pass. This gives leeway when the QR is off-center without
+    // scanning dozens of expensive filtered copies.
+    const gridRatio = 0.54;
+    const gridSw = width * gridRatio;
+    const gridSh = height * gridRatio;
+    [0, 0.5, 1].forEach((xPos) => {
+      [0, 0.5, 1].forEach((yPos) => {
+        addPlan(`grid-${xPos}-${yPos}`, (width - gridSw) * xPos, (height - gridSh) * yPos, gridSw, gridSh, 1200, ["normal"]);
+      });
+    });
+
+    // One final center threshold pass helps dim photos, but keep it small.
+    const finalRatio = 0.68;
+    const finalSw = width * finalRatio;
+    const finalSh = height * finalRatio;
+    addPlan("center-threshold", (width - finalSw) / 2, (height - finalSh) / 2, finalSw, finalSh, 1250, ["threshold"]);
+
+    return plans;
+  }
+
+  function scanCanvasDataWithJsQr(jsQR, canvasData, mode = "normal") {
+    const scanData = mode === "normal" ? canvasData.imageData : enhanceImageData(canvasData.imageData, mode);
+    const result = jsQR(scanData.data, canvasData.canvasSize.width, canvasData.canvasSize.height, {
+      inversionAttempts: "attemptBoth"
+    });
+
+    if (!result?.data) return null;
+
+    const box = translateCanvasBoxToSource(boxFromQrLocation(result.location), canvasData);
+    return {
+      decodedText: result.data,
+      boxes: box ? [box] : [],
+      imageSize: canvasData.imageSize,
+      detector: mode === "normal" ? "smart-jsqr" : `smart-jsqr-${mode}`
+    };
+  }
+
+  async function trySmartJsQr(file) {
+    const { default: jsQR } = await import("jsqr");
+    const loaded = await loadImageElement(file);
+
+    try {
+      const sourceSize = { width: loaded.naturalWidth, height: loaded.naturalHeight };
+      const cropPlans = makeCropPlans(loaded.naturalWidth, loaded.naturalHeight);
+
+      for (const crop of cropPlans) {
+        const canvasData = getCanvasDataFromImage(loaded.image, sourceSize, crop, crop.maxDimension);
+        for (const mode of crop.modes || ["normal"]) {
+          const decoded = scanCanvasDataWithJsQr(jsQR, canvasData, mode);
+          if (decoded?.decodedText) return { ...decoded, detector: `${decoded.detector}-${crop.name}` };
+        }
+      }
+    } finally {
+      URL.revokeObjectURL(loaded.objectUrl);
+    }
+
+    throw new Error("No QR code detected.");
+  }
+
   async function tryBarcodeDetector(file) {
     if (typeof window === "undefined" || !("BarcodeDetector" in window) || typeof createImageBitmap !== "function") {
       throw new Error("Native barcode detector is not available.");
@@ -398,15 +670,15 @@ function ScanPage({ onOpenItem, onBack }) {
 
     const formats = await window.BarcodeDetector.getSupportedFormats?.().catch(() => []) || [];
     const detector = new window.BarcodeDetector({ formats: formats.includes("qr_code") ? ["qr_code"] : undefined });
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" }).catch(() => createImageBitmap(file));
 
     try {
       const results = await detector.detect(bitmap);
-      const qrResult = results.find((entry) => entry.rawValue) || results[0];
-      if (!qrResult?.rawValue) throw new Error("No QR code detected.");
+      const qrResults = results.filter((entry) => entry.rawValue);
+      if (!qrResults.length) throw new Error("No QR code detected.");
 
-      const boxes = results
-        .filter((entry) => entry.rawValue && entry.boundingBox)
+      const boxes = qrResults
+        .filter((entry) => entry.boundingBox)
         .map((entry) => ({
           x: entry.boundingBox.x,
           y: entry.boundingBox.y,
@@ -414,10 +686,16 @@ function ScanPage({ onOpenItem, onBack }) {
           height: entry.boundingBox.height
         }));
 
+      const selectedBox = pickLargestBox(boxes);
+      const selected = selectedBox
+        ? qrResults.find((entry) => entry.boundingBox && entry.boundingBox.x === selectedBox.x && entry.boundingBox.y === selectedBox.y) || qrResults[0]
+        : qrResults[0];
+
       return {
-        decodedText: qrResult.rawValue,
-        boxes,
-        imageSize: { width: bitmap.width, height: bitmap.height }
+        decodedText: selected.rawValue,
+        boxes: selectedBox ? [selectedBox] : [],
+        imageSize: { width: bitmap.width, height: bitmap.height },
+        detector: "native"
       };
     } finally {
       bitmap.close?.();
@@ -426,17 +704,37 @@ function ScanPage({ onOpenItem, onBack }) {
 
   async function tryHtml5QrCode(file) {
     const { Html5Qrcode } = await import("html5-qrcode");
-    const scanner = new Html5Qrcode("qr-upload-reader");
+    const scanner = new Html5Qrcode("qr-upload-reader", { verbose: false });
     try {
       const decodedText = await scanner.scanFile(file, false);
-      return { decodedText, boxes: [], imageSize: null };
+      return { decodedText, boxes: [], imageSize: null, detector: "html5-qrcode" };
     } finally {
       try {
         await scanner.clear();
       } catch {
-        // scanFile does not always create a persistent camera stream.
+        // scanFile does not always create a persistent scanner instance.
       }
     }
+  }
+
+  async function decodeQrFromFile(file) {
+    const errors = [];
+
+    // Native detector is fast when Chrome/Android supports it. Do not let it hang.
+    try {
+      return await withTimeout(tryBarcodeDetector(file), 1800, "Native QR scan");
+    } catch (err) {
+      errors.push(err?.message || "Native detector failed");
+    }
+
+    // Fast jsQR pass: downscaled full image + a small set of smart crops.
+    try {
+      return await withTimeout(trySmartJsQr(file), 4500, "Fast QR scan");
+    } catch (err) {
+      errors.push(err?.message || "Fast QR scan failed");
+    }
+
+    throw new Error(errors.join(" | "));
   }
 
   async function handleQrPhoto(event) {
@@ -453,34 +751,35 @@ function ScanPage({ onOpenItem, onBack }) {
     setError("");
     setReferenceResult(null);
     setImageBusy(true);
-    setScanPreview({
-      url: previewUrl,
-      status: "scanning",
-      message: "Scanning QR image...",
-      decodedText: "",
-      boxes: [],
-      imageSize: null
+    setScanPreview((current) => {
+      if (current?.url) URL.revokeObjectURL(current.url);
+      return {
+        url: previewUrl,
+        status: "scanning",
+        message: "Fast scanning image and smart QR crops...",
+        decodedText: "",
+        boxes: [],
+        imageSize: null,
+        detector: ""
+      };
     });
 
     try {
-      let decoded;
-      try {
-        decoded = await tryBarcodeDetector(file);
-      } catch {
-        decoded = await tryHtml5QrCode(file);
-      }
-
+      const decoded = await decodeQrFromFile(file);
       const qrId = parseQrText(decoded.decodedText);
       setScanPreview((current) => ({
         ...(current || {}),
         url: previewUrl,
         status: "detected",
-        message: `Detected ${qrId}`,
+        message: decoded.boxes?.length
+          ? `Detected ${qrId}. Green border marks the QR used.`
+          : `Detected ${qrId}. Exact QR border is not available in this browser.`,
         decodedText: qrId,
         boxes: decoded.boxes || [],
-        imageSize: decoded.imageSize || null
+        imageSize: decoded.imageSize || null,
+        detector: decoded.detector || ""
       }));
-      await openItemFromDecodedText(decoded.decodedText, 550);
+      await openItemFromDecodedText(decoded.decodedText, 700);
     } catch (err) {
       setScanPreview((current) => ({
         ...(current || {}),
@@ -489,9 +788,10 @@ function ScanPage({ onOpenItem, onBack }) {
         message: "No readable QR code found.",
         decodedText: "",
         boxes: [],
-        imageSize: null
+        imageSize: null,
+        detector: ""
       }));
-      setError("Could not read the QR from that image. Move closer, keep it bright, and make sure the full QR code is inside the frame.");
+      setError("Could not read it quickly. Retake with the whole QR visible and make the QR fill more of the photo, or use manual QR / Reference ID below.");
     } finally {
       setImageBusy(false);
     }
@@ -564,15 +864,20 @@ function ScanPage({ onOpenItem, onBack }) {
             <>
               <ScanLine size={27} />
               <div className="capture-copy">
-                <strong>{isMobileDevice ? "Mobile camera" : "QR image upload"}</strong>
-                <span>{isMobileDevice ? "Take a clear QR photo. The app will read it and open the item." : "PC/laptop can upload a QR image on HTTP."}</span>
+                <strong>{isMobileDevice ? "Take QR photo" : "Upload QR image"}</strong>
+                <span>
+                  {isMobileDevice
+                    ? "Your camera opens, then the app auto-enhances the photo, searches crops, and marks the QR it detected."
+                    : "Upload a QR image, then the app auto-enhances/crops it and marks the QR it detected before opening the item."}
+                </span>
               </div>
             </>
           )}
+
           <div className="capture-actions">
             <label className="primary-btn file-action">
               <Camera size={15} />
-              {imageBusy ? "Reading..." : isMobileDevice ? "Open mobile camera" : "Upload QR image"}
+              {imageBusy ? "Reading..." : isMobileDevice ? "Take / upload QR photo" : "Upload QR image"}
               <input
                 type="file"
                 accept="image/*"
@@ -581,6 +886,21 @@ function ScanPage({ onOpenItem, onBack }) {
                 disabled={imageBusy}
               />
             </label>
+            {scanPreview?.url && (
+              <button
+                type="button"
+                className="ghost-btn small"
+                onClick={() => {
+                  setScanPreview((current) => {
+                    if (current?.url) URL.revokeObjectURL(current.url);
+                    return null;
+                  });
+                  setError("");
+                }}
+              >
+                Clear photo
+              </button>
+            )}
           </div>
           <div id="qr-upload-reader" className="qr-upload-reader" aria-hidden="true" />
         </div>

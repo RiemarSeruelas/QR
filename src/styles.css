@@ -317,7 +317,7 @@ input[type="file"] { padding: 5px; font-size: 0.72rem; }
 .file-action { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .file-action input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
 .qr-upload-reader { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-#qr-reader { width: min(390px, 100%); }
+
 .scan-preview {
   position: relative;
   width: min(360px, 100%);
@@ -347,6 +347,26 @@ input[type="file"] { padding: 5px; font-size: 0.72rem; }
   border-radius: 10px;
   box-shadow: 0 0 0 999px rgba(2, 6, 23, 0.22), 0 0 24px color-mix(in srgb, var(--ok) 44%, transparent);
 }
+
+.scan-detected-box::after {
+  content: "QR used";
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  transform: translateX(-50%);
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: var(--ok);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 950;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+.scan-preview.detected .scan-frame {
+  box-shadow: 0 0 0 999px rgba(2, 6, 23, 0.18), 0 0 24px color-mix(in srgb, var(--ok) 40%, transparent);
+}
+
 .scan-state {
   position: absolute;
   left: 8px;

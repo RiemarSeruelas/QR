@@ -6,9 +6,9 @@ services:
       - "5057:5057"
     environment:
       PORT: 5057
-      # Change this to your LAN URL before approving real assets.
-      # Example: http://192.168.254.109:5057
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:5057}
+      # HTTP mode. QR stores only its code so it works from any app URL/IP.
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      QR_PAYLOAD_MODE: ${QR_PAYLOAD_MODE:-code}
     volumes:
       - ./server/data:/app/server/data
     restart: unless-stopped

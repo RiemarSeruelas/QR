@@ -42,6 +42,14 @@ function makeItemUrl(req, qrId) {
   return `${getPublicBaseUrl(req)}/item/${encodeURIComponent(qrId)}`;
 }
 
+function getQrPayload(req, qrId) {
+  const mode = normalizeText(process.env.QR_PAYLOAD_MODE || "url").toLowerCase();
+  if (["code", "id", "qr-id", "qr_id"].includes(mode)) {
+    return `MACHINEQR:${qrId}`;
+  }
+  return makeItemUrl(req, qrId);
+}
+
 function makeBrandedQrSvg(rawSvg) {
   const badge = `
   <rect x="208" y="208" width="144" height="144" rx="28" fill="#ffffff" stroke="#0f62fe" stroke-width="6"/>
@@ -67,8 +75,9 @@ async function createBrandedQrDataUrl(payload) {
 }
 
 async function ensureBrandedQrForItem(req, item) {
-  if (item.qrBrand === "unilever-v1" && item.qrImageDataUrl) return false;
-  item.qrPayload = item.qrPayload || makeItemUrl(req, item.qrId);
+  const expectedPayload = getQrPayload(req, item.qrId);
+  if (item.qrBrand === "unilever-v1" && item.qrImageDataUrl && item.qrPayload === expectedPayload) return false;
+  item.qrPayload = expectedPayload;
   item.qrImageDataUrl = await createBrandedQrDataUrl(item.qrPayload);
   item.qrBrand = "unilever-v1";
   item.updatedAt = nowIso();
@@ -302,7 +311,7 @@ app.post("/api/requests/:id/approve", async (req, res) => {
   if (!expiresAt) return res.status(400).json({ error: "Expiry/validity date is required before approval." });
 
   const qrId = `QR-${nanoid()}`;
-  const qrPayload = makeItemUrl(req, qrId);
+  const qrPayload = getQrPayload(req, qrId);
   const qrImageDataUrl = await createBrandedQrDataUrl(qrPayload);
 
   const item = {

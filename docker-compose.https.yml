@@ -1,0 +1,38 @@
+services:
+  qr-system:
+    build: .
+    container_name: qr-system
+    restart: unless-stopped
+    environment:
+      PORT: 5057
+      # Leave blank when QR_PAYLOAD_MODE=code so QR works from either IP after scanning inside the app.
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      # code = QR contains MACHINEQR:QR-XXXX, best for two IP/network access.
+      # url  = QR contains one absolute URL from PUBLIC_APP_URL/current host.
+      QR_PAYLOAD_MODE: ${QR_PAYLOAD_MODE:-code}
+    volumes:
+      - ./server/data:/app/server/data
+    expose:
+      - "5057"
+    ports:
+      # Optional HTTP fallback/admin troubleshooting.
+      - "5057:5057"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: qr-system-caddy
+    restart: unless-stopped
+    depends_on:
+      - qr-system
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
