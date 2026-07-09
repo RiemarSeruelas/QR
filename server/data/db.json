@@ -2,7 +2,7 @@
   "meta": {
     "appName": "QR Asset System",
     "version": 1,
-    "updatedAt": "2026-07-09T02:54:47.259Z"
+    "updatedAt": "2026-07-09T05:41:26.634Z"
   },
   "categories": [
     {
@@ -136,14 +136,108 @@
       "reviewedAt": "2026-07-09T02:54:47.257Z",
       "reviewNote": "",
       "itemId": "asset-WXEFAYNM"
+    },
+    {
+      "id": "req-WUV3ZRDI",
+      "referenceId": "REF-X9PEOEAU",
+      "itemName": "1",
+      "itemCode": "1",
+      "site": "Savoury",
+      "submittedBy": "1",
+      "categoryId": "cat-machines",
+      "categoryName": "Machines",
+      "values": {
+        "field-area": "1",
+        "field-line": "1",
+        "field-model": "1",
+        "field-last-pm": "2026-07-30",
+        "field-next-check": "2026-08-08"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "status": "pending",
+      "submittedAt": "2026-07-09T05:32:12.886Z",
+      "reviewedAt": null,
+      "reviewNote": ""
+    },
+    {
+      "id": "req-NT7FSFJR",
+      "referenceId": "REF-1GRQSGU8",
+      "itemName": "W",
+      "itemCode": "Q",
+      "site": "Savoury",
+      "submittedBy": "1",
+      "categoryId": "cat-tools",
+      "categoryName": "Tools",
+      "values": {
+        "field-condition": "Good",
+        "field-next-inspection": "2026-07-21"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-condition",
+          "label": "Condition",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Good",
+            "Needs Repair",
+            "For Checking"
+          ]
+        },
+        {
+          "id": "field-next-inspection",
+          "label": "Next Inspection Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "status": "approved",
+      "submittedAt": "2026-07-09T05:41:13.483Z",
+      "reviewedAt": "2026-07-09T05:41:26.633Z",
+      "reviewNote": "",
+      "itemId": "asset-NXSI4BM9"
     }
   ],
   "items": [
     {
       "id": "asset-WXEFAYNM",
       "qrId": "QR-1NO0CWG5",
-      "qrPayload": "MACHINEQR:QR-1NO0CWG5",
-      "qrImageDataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYwIiB2aWV3Qm94PSIwIDAgMzMgMzMiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTAgMGgzM3YzM0gweiIvPjxwYXRoIHN0cm9rZT0iIzEyMjAzMyIgZD0iTTIgMi41aDdtMiAwaDFtMiAwaDFtMiAwaDFtMyAwaDJtMSAwaDdNMiAzLjVoMW01IDBoMW0xIDBoNG0xIDBoMW0xIDBoMm0xIDBoMm0yIDBoMW01IDBoMU0yIDQuNWgxbTEgMGgzbTEgMGgxbTMgMGgybTIgMGgybTIgMGgxbTMgMGgxbTEgMGgzbTEgMGgxTTIgNS41aDFtMSAwaDNtMSAwaDFtMyAwaDFtMiAwaDJtMSAwaDJtMiAwaDFtMSAwaDFtMSAwaDNtMSAwaDFNMiA2LjVoMW0xIDBoM20xIDBoMW0yIDBoMW03IDBoNG0xIDBoMW0xIDBoM20xIDBoMU0yIDcuNWgxbTUgMGgxbTEgMGgxbTMgMGgzbTIgMGgxbTEgMGgybTEgMGgxbTUgMGgxTTIgOC41aDdtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDdNMTAgOS41aDJtMSAwaDFtMSAwaDFtMiAwaDFtMiAwaDFNNiAxMC41aDRtMSAwaDFtMiAwaDJtMiAwaDFtMyAwaDFtMSAwaDJtMyAwaDFNMiAxMS41aDJtMSAwaDFtMyAwaDRtMiAwaDdtMyAwaDFtMSAwaDJNMiAxMi41aDJtMiAwaDFtMSAwaDNtMiAwaDFtMSAwaDJtNCAwaDFtMiAwaDNtMiAwaDFNMiAxMy41aDJtMSAwaDNtMSAwaDJtMSAwaDRtMiAwaDFtMiAwaDRtMSAwaDFtMiAwaDFNMyAxNC41aDJtMyAwaDFtMSAwaDJtMyAwaDFtMSAwaDFtMSAwaDJtMiAwaDJtMSAwaDJtMSAwaDJNMyAxNS41aDFtMyAwaDFtMyAwaDJtMiAwaDFtMSAwaDFtMiAwaDJtMiAwaDFtMyAwaDFtMSAwaDFNNCAxNi41aDFtMyAwaDFtMTAgMGgzbTEgMGgzbTQgMGgxTTIgMTcuNWgxbTYgMGgxbTMgMGgybTEgMGg0bTIgMGgxbTEgMGgxbTIgMGgxTTIgMTguNWgxbTUgMGgxbTIgMGgybTMgMGgxbTggMGgybTEgMGgxbTEgMGgxTTIgMTkuNWgybTEgMGgxbTMgMGgxbTEgMGgxbTMgMGgxbTEgMGgybTEgMGg0bTIgMGgybTEgMGgyTTQgMjAuNWgxbTEgMGgzbTEgMGgybTEgMGgybTIgMGgxbTQgMGgybTUgMGgxTTQgMjEuNWgybTEgMGgxbTEgMGgybTMgMGgzbTEgMGgybTUgMGgxbTMgMGgxTTIgMjIuNWgybTEgMGgybTEgMGg1bTIgMGgybTIgMGgxbTEgMGg4bTEgMGgxTTEwIDIzLjVoMm0yIDBoMW0yIDBoMm0zIDBoMW0zIDBoMk0yIDI0LjVoN20xIDBoM20yIDBoMW0xIDBoMm0yIDBoMm0xIDBoMW0xIDBoMW0xIDBoMU0yIDI1LjVoMW01IDBoMW0xIDBoMW0xMSAwaDFtMyAwaDVNMiAyNi41aDFtMSAwaDNtMSAwaDFtMSAwaDFtMyAwaDFtMSAwaDJtMSAwaDFtMiAwaDVtMSAwaDFNMiAyNy41aDFtMSAwaDNtMSAwaDFtMyAwaDJtMyAwaDFtMSAwaDJtMSAwaDFtMSAwaDNNMiAyOC41aDFtMSAwaDNtMSAwaDFtMiAwaDFtMSAwaDJtMSAwaDFtMSAwaDJtMSAwaDFtMiAwaDFtMyAwaDNNMiAyOS41aDFtNSAwaDFtMyAwaDRtMSAwaDJtMSAwaDFtNCAwaDFtMSAwaDNNMiAzMC41aDdtMyAwaDFtMSAwaDFtMyAwaDFtNSAwaDFtMSAwaDMiLz4KICA8cmVjdCB4PSIyMDgiIHk9IjIwOCIgd2lkdGg9IjE0NCIgaGVpZ2h0PSIxNDQiIHJ4PSIyOCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjMGY2MmZlIiBzdHJva2Utd2lkdGg9IjYiLz4KICA8Y2lyY2xlIGN4PSIyODAiIGN5PSIyODAiIHI9IjUwIiBmaWxsPSIjMGY2MmZlIi8+CiAgPHRleHQgeD0iMjgwIiB5PSIyNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSIjZmZmZmZmIj5VPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjgwMCIgZmlsbD0iI2ZmZmZmZiI+VW5pbGV2ZXI8L3RleHQ+Cjwvc3ZnPgo=",
+      "qrPayload": "http://localhost:5057/item/QR-1NO0CWG5",
+      "qrImageDataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYwIiB2aWV3Qm94PSIwIDAgNDEgNDEiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTAgMGg0MXY0MUgweiIvPjxwYXRoIHN0cm9rZT0iIzEyMjAzMyIgZD0iTTIgMi41aDdtMSAwaDFtMSAwaDJtNSAwaDFtMSAwaDRtMiAwaDJtMyAwaDdNMiAzLjVoMW01IDBoMW0xIDBoMm0zIDBoMm0xIDBoMW0xIDBoMW0yIDBoM20zIDBoMm0xIDBoMW01IDBoMU0yIDQuNWgxbTEgMGgzbTEgMGgxbTEgMGgybTIgMGg1bTIgMGgxbTEgMGgxbTMgMGg0bTEgMGgxbTEgMGgzbTEgMGgxTTIgNS41aDFtMSAwaDNtMSAwaDFtMiAwaDFtMSAwaDNtNiAwaDJtMSAwaDFtMyAwaDFtMiAwaDFtMSAwaDNtMSAwaDFNMiA2LjVoMW0xIDBoM20xIDBoMW00IDBoMm0yIDBoMW0zIDBoNG0yIDBoMm0xIDBoMW0xIDBoMW0xIDBoM20xIDBoMU0yIDcuNWgxbTUgMGgxbTEgMGgxbTEgMGgxbTIgMGg1bTEgMGgxbTIgMGgybTEgMGg0bTEgMGgxbTUgMGgxTTIgOC41aDdtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDdNMTAgOS41aDJtMSAwaDRtMSAwaDFtMSAwaDJtMSAwaDFtMiAwaDJtMiAwaDFNNCAxMC41aDNtMSAwaDFtMSAwaDFtMiAwaDFtMSAwaDExbTIgMGgxbTEgMGg0bTIgMGgzTTIgMTEuNWgxbTEgMGgxbTEgMGgxbTQgMGgxbTQgMGgybTEgMGgxbTQgMGgxbTIgMGgxbTEgMGgxbTIgMGg0TTIgMTIuNWgxbTIgMGgybTEgMGgxbTEgMGgybTIgMGgxbTEgMGgybTIgMGg1bTEgMGgxbTEgMGgzbTEgMGgxbTEgMGgxbTEgMGgzTTIgMTMuNWgxbTEgMGgxbTEgMGgybTIgMGgybTYgMGgybTIgMGg1bTIgMGgxbTIgMGgzbTEgMGgyTTIgMTQuNWg0bTIgMGgxbTEgMGgybTIgMGg0bTIgMGgzbTQgMGgzbTIgMGgxbTEgMGgybTEgMGgxTTIgMTUuNWgzbTIgMGgxbTIgMGgxbTEgMGgzbTIgMGgxbTIgMGgybTEgMGgxbTcgMGgxbTEgMGgxbTEgMGgyTTIgMTYuNWgybTEgMGg2bTMgMGgxbTIgMGgxbTIgMGgxbTEgMGg0bTQgMGgxbTEgMGgybTEgMGgxbTEgMGgyTTIgMTcuNWg0bTQgMGg0bTIgMGgzbTIgMGgybTcgMGgybTEgMGgxbTMgMGgyTTIgMTguNWgxbTIgMGg0bTEgMGgybTUgMGgxbTMgMGgxbTEgMGgxbTEgMGgxbTEgMGgxbTEgMGg2bTEgMGgxbTEgMGgxTTIgMTkuNWgxbTEgMGgybTEgMGgxbTMgMGgxbTEgMGgzbTMgMGg3bTEgMGgybTIgMGgxbTEgMGgxbTIgMGgxTTIgMjAuNWgzbTMgMGg0bTEgMGgxbTIgMGgxbTMgMGgzbTEgMGgxbTEgMGgxbTEgMGgybTEgMGgxbTEgMGgzbTEgMGgyTTMgMjEuNWgxbTEgMGgybTQgMGgzbTEgMGg1bTEgMGg0bTMgMGgxbTIgMGg0TTQgMjIuNWgxbTEgMGgzbTEgMGg1bTMgMGgzbTQgMGgybTUgMGg1TTIgMjMuNWgybTIgMGgybTMgMGgxbTEgMGgybTEgMGgybTEgMGgxbTMgMGgxbTIgMGgxbTYgMGgxbTEgMGgyTTMgMjQuNWgzbTIgMGgxbTEgMGgzbTQgMGgzbTMgMGgxbTUgMGgybTEgMGgxbTUgMGgxTTMgMjUuNWgxbTIgMGgxbTUgMGgybTMgMGgxbTEgMGgzbTIgMGgxbTMgMGgxbTEgMGg0bTQgMGgxTTIgMjYuNWgxbTUgMGg2bTEgMGgybTIgMGgxbTEgMGgybTEgMGgybTYgMGgxbTMgMGgyTTIgMjcuNWgxbTEgMGgxbTEgMGgxbTQgMGg1bTEgMGgxbTMgMGgybTMgMGg3TTIgMjguNWgxbTEgMGgxbTMgMGgybTEgMGgxbTQgMGgxbTIgMGgzbTIgMGgxbTIgMGgybTUgMGgxbTMgMGgxTTIgMjkuNWgxbTQgMGgxbTMgMGgzbTIgMGgxbTEgMGgybTEgMGgxbTQgMGgxbTEgMGgxbTEgMGgxbTMgMGg0TTIgMzAuNWgxbTIgMGg2bTEgMGgzbTMgMGgxbTEgMGgxbTEgMGgxbTQgMGgybTEgMGg5TTEwIDMxLjVoMm00IDBoMm0yIDBoMW0xIDBoMW0xIDBoMW0xIDBoMW0yIDBoMm0zIDBoMU0yIDMyLjVoN20zIDBoM20xIDBoMW0yIDBoM20yIDBoMW0xIDBoMW0xIDBoMW0xIDBoMW0xIDBoMW0xIDBoMm0xIDBoMk0yIDMzLjVoMW01IDBoMW0zIDBoMm0xIDBoMm0xIDBoMW0yIDBoM20xIDBoMm0xIDBoMW0xIDBoMW0zIDBoMW0yIDBoMU0yIDM0LjVoMW0xIDBoM20xIDBoMW0xIDBoMm0xIDBoMm00IDBoMW02IDBoMm0xIDBoNm0xIDBoMW0xIDBoMU0yIDM1LjVoMW0xIDBoM20xIDBoMW0xIDBoMW0yIDBoMW0yIDBoMW0yIDBoMm0xIDBoM20zIDBoMm0yIDBoMW0xIDBoNU0yIDM2LjVoMW0xIDBoM20xIDBoMW0xIDBoMm01IDBoMW0xIDBoMW0xIDBoM20xIDBoMm0yIDBoMW0zIDBoMW0xIDBoMW0yIDBoMU0yIDM3LjVoMW01IDBoMW0yIDBoM20xIDBoMW0xIDBoMm0yIDBoMW0xIDBoMW0xIDBoMW0yIDBoMW0xIDBoM201IDBoMU0yIDM4LjVoN202IDBoM20zIDBoMW0xIDBoM20zIDBoMW0yIDBoMm0xIDBoNCIvPgogIDxyZWN0IHg9IjIwOCIgeT0iMjA4IiB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjE0NCIgcng9IjI4IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiMwZjYyZmUiIHN0cm9rZS13aWR0aD0iNiIvPgogIDxjaXJjbGUgY3g9IjI4MCIgY3k9IjI4MCIgcj0iNTAiIGZpbGw9IiMwZjYyZmUiLz4KICA8dGV4dCB4PSIyODAiIHk9IjI3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IiNmZmZmZmYiPlU8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iODAwIiBmaWxsPSIjZmZmZmZmIj5VbmlsZXZlcjwvdGV4dD4KPC9zdmc+Cg==",
       "qrBrand": "unilever-v1",
       "itemName": "1",
       "itemCode": "1",
@@ -178,6 +272,49 @@
       "registeredAt": "2026-07-09T02:54:47.257Z",
       "approvedAt": "2026-07-09T02:54:47.257Z",
       "expiresAt": "2026-07-30",
+      "archivedAt": null,
+      "reviewNote": "",
+      "updatedAt": "2026-07-09T05:31:49.465Z"
+    },
+    {
+      "id": "asset-NXSI4BM9",
+      "qrId": "QR-GKS5DQNF",
+      "qrPayload": "http://localhost:5057/item/QR-GKS5DQNF",
+      "qrImageDataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYwIiB2aWV3Qm94PSIwIDAgNDEgNDEiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTAgMGg0MXY0MUgweiIvPjxwYXRoIHN0cm9rZT0iIzEyMjAzMyIgZD0iTTIgMi41aDdtMSAwaDFtMiAwaDFtMSAwaDFtMyAwaDRtMSAwaDFtMiAwaDJtMyAwaDdNMiAzLjVoMW01IDBoMW0xIDBoMm0xIDBoMW0xIDBoMm0xIDBoMW0xIDBoMW0xIDBoMW0yIDBoMW0zIDBoMm0xIDBoMW01IDBoMU0yIDQuNWgxbTEgMGgzbTEgMGgxbTEgMGgybTEgMGgybTEgMGgzbTQgMGgxbTMgMGg0bTEgMGgxbTEgMGgzbTEgMGgxTTIgNS41aDFtMSAwaDNtMSAwaDFtMiAwaDFtMSAwaDRtNCAwaDVtMyAwaDFtMiAwaDFtMSAwaDNtMSAwaDFNMiA2LjVoMW0xIDBoM20xIDBoMW00IDBoNW0zIDBoMW0yIDBoMW0yIDBoMm0xIDBoMW0xIDBoMW0xIDBoM20xIDBoMU0yIDcuNWgxbTUgMGgxbTEgMGgxbTEgMGgybTIgMGg0bTIgMGgybTEgMGgxbTEgMGg0bTEgMGgxbTUgMGgxTTIgOC41aDdtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDdNMTAgOS41aDJtMSAwaDJtMyAwaDFtMSAwaDFtMiAwaDFtMiAwaDJtMiAwaDFNNCAxMC41aDNtMSAwaDFtMSAwaDFtMiAwaDFtMSAwaDNtMSAwaDRtMSAwaDNtMSAwaDFtMSAwaDRtMiAwaDNNMiAxMS41aDFtMiAwaDJtOSAwaDJtMSAwaDFtNiAwaDJtMSAwaDFtMiAwaDNNMiAxMi41aDFtMSAwaDVtMSAwaDFtMyAwaDFtMSAwaDltMSAwaDFtMSAwaDNtMSAwaDFtMSAwaDVNMiAxMy41aDFtMSAwaDFtMiAwaDFtMiAwaDFtOCAwaDJtMSAwaDNtNCAwaDFtMiAwaDRtMSAwaDFNMiAxNC41aDRtMiAwaDFtMSAwaDFtMSAwaDFtMSAwaDRtMSAwaDRtMiAwaDFtMSAwaDNtMiAwaDFtMSAwaDFtMSAwaDJNMiAxNS41aDNtMiAwaDFtMiAwaDJtMSAwaDJtMiAwaDFtMSAwaDNtMSAwaDFtMSAwaDFtNSAwaDFtMSAwaDFtMSAwaDJNMiAxNi41aDJtMSAwaDdtMiAwaDFtMyAwaDFtMSAwaDFtMSAwaDRtNCAwaDFtMSAwaDJtMSAwaDFtMSAwaDJNMiAxNy41aDNtMSAwaDJtMiAwaDFtMSAwaDJtMiAwaDJtMSAwaDRtMiAwaDFtNCAwaDJtMSAwaDFtMyAwaDJNMiAxOC41aDFtMiAwaDFtMiAwaDFtMSAwaDFtMSAwaDFtNCAwaDFtMSAwaDFtMSAwaDNtMSAwaDFtMSAwaDFtMSAwaDZtMSAwaDFtMSAwaDFNMiAxOS41aDFtMSAwaDJtMSAwaDFtMyAwaDFtMiAwaDFtNCAwaDFtNCAwaDJtMSAwaDJtMiAwaDFtMSAwaDFtMiAwaDFNMiAyMC41aDNtMyAwaDJtMSAwaDFtMSAwaDRtMyAwaDJtNCAwaDFtMSAwaDJtMSAwaDFtMSAwaDNtMSAwaDJNMiAyMS41aDJtMSAwaDJtMyAwaDNtMyAwaDRtMyAwaDFtNCAwaDFtMiAwaDRNMiAyMi41aDFtMSAwaDFtMSAwaDRtMSAwaDJtMiAwaDJtMSAwaDNtMiAwaDFtMSAwaDJtNSAwaDVNMiAyMy41aDFtMyAwaDJtMyAwaDFtMiAwaDFtMSAwaDJtMSAwaDFtMSAwaDFtNCAwaDFtNiAwaDFtMSAwaDJNMiAyNC41aDRtMiAwaDJtMSAwaDVtMSAwaDNtOSAwaDJtMSAwaDFNMiAyNS41aDJtMiAwaDFtNSAwaDFtMSAwaDRtMSAwaDNtMSAwaDJtMyAwaDFtMSAwaDRtNCAwaDFNOCAyNi41aDFtMSAwaDNtMyAwaDFtMSAwaDJtMiAwaDFtMSAwaDJtNiAwaDFtMyAwaDFNMiAyNy41aDFtOSAwaDRtMSAwaDFtMSAwaDFtMSAwaDJtMyAwaDdtMiAwaDJNMiAyOC41aDFtMSAwaDFtMiAwaDNtMSAwaDFtNCAwaDJtMSAwaDNtMiAwaDFtMiAwaDJtNiAwaDFtMiAwaDFNMiAyOS41aDFtOCAwaDNtMiAwaDFtMSAwaDFtMSAwaDJtNCAwaDFtMSAwaDFtMSAwaDFtMiAwaDFtMSAwaDFtMSAwaDFNMiAzMC41aDFtMyAwaDVtMSAwaDNtMiAwaDNtMiAwaDFtNCAwaDJtMSAwaDVtMSAwaDNNMTAgMzEuNWgzbTMgMGgybTQgMGgxbTEgMGgybTMgMGgybTMgMGgxTTIgMzIuNWg3bTQgMGgybTEgMGgxbTEgMGgxbTIgMGgxbTIgMGgxbTEgMGgxbTEgMGgxbTEgMGgxbTEgMGgxbTEgMGgybTEgMGgyTTIgMzMuNWgxbTUgMGgxbTMgMGgybTEgMGg5bTEgMGgybTEgMGgxbTEgMGgxbTMgMGgxbTIgMGgxTTIgMzQuNWgxbTEgMGgzbTEgMGgxbTEgMGg0bTMgMGgxbTQgMGgxbTMgMGgybTEgMGg2bTEgMGgxbTEgMGgxTTIgMzUuNWgxbTEgMGgzbTEgMGgxbTEgMGgxbTEgMGgybTIgMGgxbTIgMGgxbTQgMGgxbTIgMGgzbTIgMGgxbTEgMGg1TTIgMzYuNWgxbTEgMGgzbTEgMGgxbTEgMGgybTEgMGgybTEgMGgybTEgMGgxbTUgMGgzbTEgMGgxbTMgMGgxbTEgMGgxbTIgMGgxTTIgMzcuNWgxbTUgMGgxbTIgMGgybTQgMGgybTIgMGgybTEgMGgybTEgMGgybTEgMGgzbTUgMGgxTTIgMzguNWg3bTUgMGg0bTMgMGgzbTEgMGgxbTMgMGgxbTIgMGgybTEgMGg0Ii8+CiAgPHJlY3QgeD0iMjA4IiB5PSIyMDgiIHdpZHRoPSIxNDQiIGhlaWdodD0iMTQ0IiByeD0iMjgiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iIzBmNjJmZSIgc3Ryb2tlLXdpZHRoPSI2Ii8+CiAgPGNpcmNsZSBjeD0iMjgwIiBjeT0iMjgwIiByPSI1MCIgZmlsbD0iIzBmNjJmZSIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMjc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiI+VTwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI4MDAiIGZpbGw9IiNmZmZmZmYiPlVuaWxldmVyPC90ZXh0Pgo8L3N2Zz4K",
+      "qrBrand": "unilever-v1",
+      "itemName": "W",
+      "itemCode": "Q",
+      "site": "Savoury",
+      "categoryId": "cat-tools",
+      "categoryName": "Tools",
+      "values": {
+        "field-condition": "Good",
+        "field-next-inspection": "2026-07-21"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-condition",
+          "label": "Condition",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Good",
+            "Needs Repair",
+            "For Checking"
+          ]
+        },
+        {
+          "id": "field-next-inspection",
+          "label": "Next Inspection Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "submittedBy": "1",
+      "requestId": "req-NT7FSFJR",
+      "registeredAt": "2026-07-09T05:41:26.633Z",
+      "approvedAt": "2026-07-09T05:41:26.633Z",
+      "expiresAt": "2026-07-21",
       "archivedAt": null,
       "reviewNote": ""
     }
