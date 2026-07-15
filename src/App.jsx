@@ -29,10 +29,31 @@ import {
 } from "lucide-react";
 import { api } from "./api.js";
 
-const ADMIN_PASSWORD = "1234";
+const ADMIN_SESSION_KEY = "qr-admin-session";
 const EMPTY_FIELD = { label: "", type: "text", required: false, placeholder: "", optionsText: "" };
 const FIELD_TYPES = ["text", "number", "date", "textarea", "select", "image"];
 const SITE_OPTIONS = ["Savoury", "Engineering", "Dressings"];
+const ROLE_LABELS = { security: "Security", engineering: "Engineering", all: "Full Admin" };
+
+function normalizeRole(value) {
+  const role = String(value || "").trim().toLowerCase();
+  if (["security", "engineering", "all"].includes(role)) return role;
+  return "";
+}
+
+function roleLabel(role) {
+  return ROLE_LABELS[normalizeRole(role)] || String(role || "");
+}
+
+function canAdminActOnRequest(admin, request) {
+  const role = normalizeRole(admin?.role);
+  if (role === "all") return request.status === "pending";
+  return request.status === "pending" && normalizeRole(request.currentApprovalRole) === role;
+}
+
+function formatApprovalFlow(flow = []) {
+  return (flow || []).map(roleLabel).filter(Boolean).join(" → ") || "Security → Engineering";
+}
 
 function formatDate(value) {
   if (!value) return "—";
@@ -1020,17 +1041,23 @@ function ItemDetails({ qrId, onBack }) {
 }
 
 function AdminLogin({ onLogin }) {
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({ username: "security", password: "" });
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    if (password !== ADMIN_PASSWORD) {
-      setError("Wrong password.");
-      return;
+    setBusy(true);
+    setError("");
+    try {
+      const session = await api.login(form);
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
+      onLogin(session);
+    } catch (error) {
+      setError(error.message || "Login failed.");
+    } finally {
+      setBusy(false);
     }
-    localStorage.setItem("qr-admin-unlocked", "true");
-    onLogin();
   }
 
   return (
@@ -1039,40 +1066,63 @@ function AdminLogin({ onLogin }) {
         <div className="panel-heading compact-heading">
           <div>
             <p className="eyebrow">Admin</p>
-            <h2>Password required</h2>
+            <h2>Admin account required</h2>
           </div>
           <KeyRound size={24} />
         </div>
         {error && <div className="notice error">{error}</div>}
         <form onSubmit={submit} className="stack-form">
           <label>
-            Password
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter admin password" autoFocus />
+            Account
+            <select value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}>
+              <option value="security">Security</option>
+              <option value="engineering">Engineering</option>
+              <option value="admin">Full admin</option>
+            </select>
           </label>
-          <button className="primary-btn">Enter admin</button>
+          <label>
+            Password
+            <input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder="Default: 1234" autoFocus />
+          </label>
+          <button className="primary-btn" disabled={busy}>{busy ? "Checking..." : "Enter admin"}</button>
         </form>
+        <p className="muted small-text login-help">Default test accounts: security / engineering / admin. Password is 1234 for now.</p>
       </section>
     </main>
   );
 }
 
 function CategoryManager({ categories, reload }) {
-  const [editingId, setEditingId] = useState(null);
-  const [draft, setDraft] = useState({ name: "", description: "", fields: [{ ...EMPTY_FIELD, label: "Validity Date", type: "date", required: true }] });
+  const firstCategory = categories[0] || null;
+  const makeEmptyDraft = () => ({ name: "", description: "", fields: [{ ...EMPTY_FIELD, label: "Validity Date", type: "date", required: true }] });
+  const makeCategoryDraft = (category) => ({
+    name: category?.name || "",
+    description: category?.description || "",
+    fields: (category?.fields || []).map((field) => ({ ...field, optionsText: (field.options || []).join("\n") }))
+  });
+  const [editingId, setEditingId] = useState(firstCategory?.id || null);
+  const [draft, setDraft] = useState(() => firstCategory ? makeCategoryDraft(firstCategory) : makeEmptyDraft());
   const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!categories.length) return;
+    const selectedStillExists = categories.some((category) => category.id === editingId);
+    if (!editingId || !selectedStillExists) {
+      const next = categories[0];
+      setEditingId(next.id);
+      setDraft(makeCategoryDraft(next));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
 
   function resetDraft() {
     setEditingId(null);
-    setDraft({ name: "", description: "", fields: [{ ...EMPTY_FIELD, label: "Validity Date", type: "date", required: true }] });
+    setDraft(makeEmptyDraft());
   }
 
   function editCategory(category) {
     setEditingId(category.id);
-    setDraft({
-      name: category.name,
-      description: category.description || "",
-      fields: (category.fields || []).map((field) => ({ ...field, optionsText: (field.options || []).join("\n") }))
-    });
+    setDraft(makeCategoryDraft(category));
   }
 
   function updateField(index, key, value) {
@@ -1210,15 +1260,44 @@ function CategoryManager({ categories, reload }) {
   );
 }
 
-function RequestCard({ request, onAction }) {
+function ApprovalSteps({ request }) {
+  const approvals = Array.isArray(request.approvals) ? request.approvals : [];
+  return (
+    <div className="approval-steps">
+      {(request.approvalFlow || []).map((role) => {
+        const done = approvals.find((entry) => normalizeRole(entry.role) === normalizeRole(role));
+        const active = request.status === "pending" && normalizeRole(request.currentApprovalRole) === normalizeRole(role);
+        return (
+          <span key={role} className={cx("approval-step", done && "done", active && "active")}>
+            {done ? <CheckCircle2 size={13} /> : active ? <Bell size={13} /> : <ChevronDown size={13} />}
+            {roleLabel(role)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function RequestCard({ request, adminSession, onAction }) {
   const [note, setNote] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [busy, setBusy] = useState(false);
+  const canAct = canAdminActOnRequest(adminSession, request);
+  const isFinalStep = request.status === "pending" && (request.approvalFlow || []).filter((role) => {
+    const approvals = Array.isArray(request.approvals) ? request.approvals : [];
+    if (normalizeRole(role) === normalizeRole(request.currentApprovalRole)) return true;
+    return !approvals.some((entry) => normalizeRole(entry.role) === normalizeRole(role));
+  }).length <= 1;
 
   async function approve() {
     setBusy(true);
     try {
-      await api.approveRequest(request.id, { reviewNote: note, expiresAt: expiresAt || undefined });
+      await api.approveRequest(request.id, {
+        reviewNote: note,
+        expiresAt: expiresAt || undefined,
+        role: adminSession?.role,
+        approvedBy: adminSession?.displayName || adminSession?.username
+      });
       onAction();
     } catch (error) {
       alert(error.message);
@@ -1230,7 +1309,11 @@ function RequestCard({ request, onAction }) {
   async function reject() {
     setBusy(true);
     try {
-      await api.rejectRequest(request.id, { reviewNote: note });
+      await api.rejectRequest(request.id, {
+        reviewNote: note,
+        role: adminSession?.role,
+        rejectedBy: adminSession?.displayName || adminSession?.username
+      });
       onAction();
     } catch (error) {
       alert(error.message);
@@ -1240,7 +1323,7 @@ function RequestCard({ request, onAction }) {
   }
 
   return (
-    <article className="request-card">
+    <article className={cx("request-card", canAct && "actionable") }>
       <div className="request-top">
         <div>
           <p className="eyebrow">{request.categoryName}</p>
@@ -1252,7 +1335,10 @@ function RequestCard({ request, onAction }) {
       <div className="request-meta">
         <span>Submitted: {formatDateTime(request.submittedAt)}</span>
         <span>By: {request.submittedBy || "—"}</span>
+        <span>Flow: {formatApprovalFlow(request.approvalFlow)}</span>
+        {request.status === "pending" && <span>Current: {roleLabel(request.currentApprovalRole)}</span>}
       </div>
+      <ApprovalSteps request={request} />
       <details>
         <summary>View details</summary>
         <FieldRows compact fields={request.fieldsSnapshot || []} values={request.values || {}} />
@@ -1261,15 +1347,15 @@ function RequestCard({ request, onAction }) {
         <div className="approval-box">
           <label>
             Expiry override
-            <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
+            <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={!canAct || !isFinalStep} />
           </label>
           <label>
             Review note
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional remark" />
+            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder={canAct ? "Optional remark" : `Waiting for ${roleLabel(request.currentApprovalRole)}`} disabled={!canAct} />
           </label>
           <div className="button-row">
-            <button className="primary-btn small" disabled={busy} onClick={approve}><CheckCircle2 size={15} /> Approve</button>
-            <button className="danger-btn small" disabled={busy} onClick={reject}><XCircle size={15} /> Reject</button>
+            <button className="primary-btn small" disabled={busy || !canAct} onClick={approve}><CheckCircle2 size={15} /> {isFinalStep ? "Final approve" : "Approve step"}</button>
+            <button className="danger-btn small" disabled={busy || !canAct} onClick={reject}><XCircle size={15} /> Reject</button>
           </div>
         </div>
       )}
@@ -1277,8 +1363,10 @@ function RequestCard({ request, onAction }) {
   );
 }
 
-function RequestsAdmin({ requests, reload }) {
+function RequestsAdmin({ requests, adminSession, reload }) {
   const pending = requests.filter((entry) => entry.status === "pending");
+  const actionable = pending.filter((entry) => canAdminActOnRequest(adminSession, entry));
+  const waiting = pending.filter((entry) => !canAdminActOnRequest(adminSession, entry));
   const reviewed = requests.filter((entry) => entry.status !== "pending").slice(0, 5);
   return (
     <section className="admin-section">
@@ -1286,6 +1374,7 @@ function RequestsAdmin({ requests, reload }) {
         <div>
           <p className="eyebrow">Approval queue</p>
           <h2>Requests</h2>
+          <p className="muted small-text">Logged in as {adminSession?.displayName} • {roleLabel(adminSession?.role)}</p>
         </div>
         <span className="live-small">Auto updates</span>
       </div>
@@ -1294,7 +1383,10 @@ function RequestsAdmin({ requests, reload }) {
         <EmptyState title="No pending requests" message="New user registrations will appear here." />
       ) : (
         <div className="request-list">
-          {pending.map((request) => <RequestCard key={request.id} request={request} onAction={reload} />)}
+          {actionable.length > 0 && <p className="queue-label">Needs your approval</p>}
+          {actionable.map((request) => <RequestCard key={request.id} request={request} adminSession={adminSession} onAction={reload} />)}
+          {waiting.length > 0 && <p className="queue-label muted">Waiting for another group</p>}
+          {waiting.map((request) => <RequestCard key={request.id} request={request} adminSession={adminSession} onAction={reload} />)}
         </div>
       )}
 
@@ -1474,16 +1566,20 @@ function QuickList({ items, openItem }) {
   );
 }
 
-function AdminDashboard({ categories, requests, items, allItems, filters, setFilters, reloadAll, openItem, onLogout }) {
+function AdminDashboard({ categories, requests, items, allItems, filters, setFilters, reloadAll, openItem, adminSession, onLogout }) {
   const [activePanel, setActivePanel] = useState(() => localStorage.getItem("qr-admin-panel") || "quick");
   const quickItems = useMemo(() => allItems.filter((entry) => !entry.archivedAt), [allItems]);
-  const stats = useMemo(() => ({
-    pending: requests.filter((entry) => entry.status === "pending").length,
-    registered: allItems.filter((entry) => !entry.archivedAt).length,
-    expired: allItems.filter((entry) => entry.validity?.status === "expired").length,
-    archived: allItems.filter((entry) => entry.archivedAt).length,
-    categories: categories.length
-  }), [categories, requests, allItems]);
+  const stats = useMemo(() => {
+    const pendingRequests = requests.filter((entry) => entry.status === "pending");
+    return {
+      pending: pendingRequests.length,
+      actionable: pendingRequests.filter((entry) => canAdminActOnRequest(adminSession, entry)).length,
+      registered: allItems.filter((entry) => !entry.archivedAt).length,
+      expired: allItems.filter((entry) => entry.validity?.status === "expired").length,
+      archived: allItems.filter((entry) => entry.archivedAt).length,
+      categories: categories.length
+    };
+  }, [categories, requests, allItems, adminSession]);
 
   useEffect(() => {
     localStorage.setItem("qr-admin-panel", activePanel);
@@ -1507,6 +1603,7 @@ function AdminDashboard({ categories, requests, items, allItems, filters, setFil
         <div>
           <p className="eyebrow">Admin</p>
           <h2>{activePanel === "quick" ? "Expiry quick list" : activePanel === "builder" ? "Admin builder" : activePanel === "requests" ? "Requests" : "Approved assets"}</h2>
+          <p className="muted small-text">{adminSession?.displayName} • {roleLabel(adminSession?.role)}</p>
         </div>
         <button className="ghost-btn small" onClick={onLogout}><LogOut size={14} /> Lock admin</button>
       </div>
@@ -1514,7 +1611,7 @@ function AdminDashboard({ categories, requests, items, allItems, filters, setFil
       <div className="stats-grid admin-nav-grid">
         <StatCard icon={ClipboardList} label="Quick list" value={`${stats.registered} active`} active={activePanel === "quick"} onClick={() => showPanel("quick")} />
         <StatCard icon={Plus} label="Builder" value={`${stats.categories} types`} active={activePanel === "builder"} onClick={() => showPanel("builder")} />
-        <StatCard icon={Bell} label="Requests" value={stats.pending} tone="warn" active={activePanel === "requests"} onClick={() => showPanel("requests")} badge={stats.pending} />
+        <StatCard icon={Bell} label="Requests" value={`${stats.actionable}/${stats.pending}`} tone="warn" active={activePanel === "requests"} onClick={() => showPanel("requests")} badge={stats.actionable} />
         <StatCard icon={QrCode} label="Approved" value={stats.registered} tone="ok" active={activePanel === "approved" && !filters.status && !filters.includeArchived} onClick={() => showApproved({ status: "", includeArchived: false, sort: "expiry" })} />
         <StatCard icon={CalendarDays} label="Expired" value={stats.expired} tone="danger" active={activePanel === "approved" && filters.status === "expired"} onClick={() => showApproved({ status: "expired", includeArchived: false, sort: "expiry" })} />
         <StatCard icon={Archive} label="Archived" value={stats.archived} active={activePanel === "approved" && filters.status === "archived"} onClick={() => showApproved({ status: "archived", includeArchived: true, sort: "expiry" })} />
@@ -1523,7 +1620,7 @@ function AdminDashboard({ categories, requests, items, allItems, filters, setFil
       <div className="admin-panel-slot">
         {activePanel === "quick" && <QuickList items={quickItems} openItem={openItem} />}
         {activePanel === "builder" && <CategoryManager categories={categories} reload={reloadAll} />}
-        {activePanel === "requests" && <RequestsAdmin requests={requests} reload={reloadAll} />}
+        {activePanel === "requests" && <RequestsAdmin requests={requests} adminSession={adminSession} reload={reloadAll} />}
         {activePanel === "approved" && <RegisteredAdmin items={items} categories={categories} filters={filters} setFilters={setFilters} reload={reloadAll} openItem={openItem} />}
       </div>
     </main>
@@ -1550,7 +1647,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("qr-theme") || "light");
-  const [adminUnlocked, setAdminUnlocked] = useState(() => localStorage.getItem("qr-admin-unlocked") === "true");
+  const [adminSession, setAdminSession] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) || "null");
+    } catch {
+      return null;
+    }
+  });
+  const adminUnlocked = Boolean(adminSession);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1640,9 +1744,13 @@ export default function App() {
 
   const activeMainTab = tab === "details" ? detailsReturn.tab : tab;
 
+  function loginAdmin(session) {
+    setAdminSession(session);
+  }
+
   function logoutAdmin() {
-    localStorage.removeItem("qr-admin-unlocked");
-    setAdminUnlocked(false);
+    localStorage.removeItem(ADMIN_SESSION_KEY);
+    setAdminSession(null);
   }
 
   return (
@@ -1659,7 +1767,7 @@ export default function App() {
         <div className="topbar-actions">
           <nav>
             <button className={cx(activeMainTab === "user" && "active")} onClick={() => setMainTab("user")}><UserCircle size={16} /> User</button>
-            <button className={cx(activeMainTab === "admin" && "active", "nav-with-badge")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin{requests.filter((entry) => entry.status === "pending").length > 0 && <span className="nav-badge">{requests.filter((entry) => entry.status === "pending").length}</span>}</button>
+            <button className={cx(activeMainTab === "admin" && "active", "nav-with-badge")} onClick={() => setMainTab("admin")}><LayoutDashboard size={16} /> Admin{requests.filter((entry) => entry.status === "pending" && canAdminActOnRequest(adminSession, entry)).length > 0 && <span className="nav-badge">{requests.filter((entry) => entry.status === "pending" && canAdminActOnRequest(adminSession, entry)).length}</span>}</button>
           </nav>
           <span className="live-pill">Live</span>
           <button className="top-action icon-only" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label="Toggle light and dark mode">
@@ -1675,8 +1783,8 @@ export default function App() {
         {tab === "user" && userMode === "home" && <UserHome onPick={setUserMode} />}
         {tab === "user" && userMode === "register" && <UserRegister categories={categories} onCreated={reloadAll} onBack={() => setUserMode("home")} />}
         {tab === "user" && userMode === "followup" && <ScanPage onOpenItem={openItem} onBack={() => setUserMode("home")} />}
-        {tab === "admin" && !adminUnlocked && <AdminLogin onLogin={() => setAdminUnlocked(true)} />}
-        {tab === "admin" && adminUnlocked && <AdminDashboard categories={categories} requests={requests} items={items} allItems={allItems} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} onLogout={logoutAdmin} />}
+        {tab === "admin" && !adminUnlocked && <AdminLogin onLogin={loginAdmin} />}
+        {tab === "admin" && adminUnlocked && <AdminDashboard categories={categories} requests={requests} items={items} allItems={allItems} filters={filters} setFilters={setFilters} reloadAll={reloadAll} openItem={openItem} adminSession={adminSession} onLogout={logoutAdmin} />}
         {tab === "details" && <ItemDetails qrId={selectedQrId} onBack={backFromDetails} />}
       </div>
     </div>

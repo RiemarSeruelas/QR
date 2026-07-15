@@ -49,6 +49,11 @@ const starterDb = {
       createdAt: new Date().toISOString()
     }
   ],
+  adminUsers: [
+    { id: "admin-security", username: "security", password: "1234", role: "security", displayName: "Security Admin", createdAt: new Date().toISOString() },
+    { id: "admin-engineering", username: "engineering", password: "1234", role: "engineering", displayName: "Engineering Admin", createdAt: new Date().toISOString() },
+    { id: "admin-full", username: "admin", password: "1234", role: "all", displayName: "Full Admin", createdAt: new Date().toISOString() }
+  ],
   requests: [],
   items: []
 };

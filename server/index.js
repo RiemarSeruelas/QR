@@ -101,6 +101,95 @@ function getItemValidity(item) {
   };
 }
 
+const ROLE_LABELS = {
+  security: "Security",
+  engineering: "Engineering",
+  all: "Full Admin"
+};
+
+function normalizeRole(value) {
+  const role = normalizeText(value).toLowerCase();
+  if (["security", "engineering", "all"].includes(role)) return role;
+  if (["admin", "superadmin", "full"].includes(role)) return "all";
+  return "";
+}
+
+function roleLabel(role) {
+  return ROLE_LABELS[normalizeRole(role)] || normalizeText(role) || "Admin";
+}
+
+function defaultAdminUsers() {
+  return [
+    { id: "admin-security", username: "security", password: "1234", role: "security", displayName: "Security Admin", createdAt: nowIso() },
+    { id: "admin-engineering", username: "engineering", password: "1234", role: "engineering", displayName: "Engineering Admin", createdAt: nowIso() },
+    { id: "admin-full", username: "admin", password: "1234", role: "all", displayName: "Full Admin", createdAt: nowIso() }
+  ];
+}
+
+function ensureAdminUsers(db) {
+  let changed = false;
+  const existing = Array.isArray(db.adminUsers) ? db.adminUsers : [];
+  const usersByName = new Map(existing.map((user) => [normalizeText(user.username).toLowerCase(), user]));
+  for (const user of defaultAdminUsers()) {
+    const key = normalizeText(user.username).toLowerCase();
+    if (!usersByName.has(key)) {
+      existing.push(user);
+      changed = true;
+    }
+  }
+  db.adminUsers = existing.map((user) => ({
+    ...user,
+    role: normalizeRole(user.role) || "security",
+    displayName: normalizeText(user.displayName) || normalizeText(user.username) || "Admin"
+  }));
+  return changed;
+}
+
+function categoryApprovalFlow(categoryName) {
+  const name = normalizeText(categoryName).toLowerCase();
+  if (name.includes("device")) return ["engineering", "security"];
+  if (name.includes("machine")) return ["security", "engineering"];
+  if (name.includes("tool")) return ["security", "engineering"];
+  return ["security", "engineering"];
+}
+
+function ensureRequestWorkflow(request) {
+  let changed = false;
+  const flow = Array.isArray(request.approvalFlow) && request.approvalFlow.length
+    ? request.approvalFlow.map(normalizeRole).filter((role) => role && role !== "all")
+    : categoryApprovalFlow(request.categoryName);
+
+  if (!Array.isArray(request.approvalFlow) || request.approvalFlow.join("|") !== flow.join("|")) {
+    request.approvalFlow = flow;
+    changed = true;
+  }
+  if (!Array.isArray(request.approvals)) {
+    request.approvals = [];
+    changed = true;
+  }
+
+  const approvedRoles = new Set(request.approvals.map((entry) => normalizeRole(entry.role)).filter(Boolean));
+  const nextRole = flow.find((role) => !approvedRoles.has(role)) || "";
+
+  if (request.status === "pending") {
+    if (request.currentApprovalRole !== nextRole) {
+      request.currentApprovalRole = nextRole;
+      changed = true;
+    }
+  } else if (request.currentApprovalRole) {
+    request.currentApprovalRole = "";
+    changed = true;
+  }
+
+  return changed;
+}
+
+function requestCanBeActionedBy(request, role) {
+  const adminRole = normalizeRole(role);
+  if (adminRole === "all") return true;
+  return request.status === "pending" && normalizeRole(request.currentApprovalRole) === adminRole;
+}
+
 function validateCategoryPayload(body, existingId) {
   const name = normalizeText(body.name);
   if (!name) return { error: "Category name is required." };
@@ -182,6 +271,9 @@ function validateRequestPayload(db, body) {
       categoryName: category.name,
       values,
       fieldsSnapshot: category.fields || [],
+      approvalFlow: categoryApprovalFlow(category.name),
+      approvals: [],
+      currentApprovalRole: categoryApprovalFlow(category.name)[0],
       status: "pending",
       submittedAt: nowIso(),
       reviewedAt: null,
@@ -209,6 +301,24 @@ function sortItemsDefault(a, b) {
 
 app.get("/api/health", async (req, res) => {
   res.json({ ok: true, dbPath: getDbPath(), time: nowIso() });
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  const db = await readDb();
+  const changed = ensureAdminUsers(db);
+  const username = normalizeText(req.body?.username).toLowerCase();
+  const password = normalizeText(req.body?.password);
+  const user = (db.adminUsers || []).find((entry) => normalizeText(entry.username).toLowerCase() === username);
+  if (changed) await writeDb(db);
+  if (!user || normalizeText(user.password) !== password) {
+    return res.status(401).json({ error: "Wrong username or password." });
+  }
+  res.json({
+    username: user.username,
+    displayName: user.displayName || user.username,
+    role: normalizeRole(user.role),
+    roleLabel: roleLabel(user.role)
+  });
 });
 
 app.get("/api/categories", async (req, res) => {
@@ -260,9 +370,16 @@ app.post("/api/requests", async (req, res) => {
 app.get("/api/requests", async (req, res) => {
   const db = await readDb();
   const status = normalizeText(req.query.status);
+  let changed = false;
+  for (const request of db.requests || []) changed = ensureRequestWorkflow(request) || changed;
+  if (changed) await writeDb(db);
   let requests = db.requests || [];
   if (status) requests = requests.filter((entry) => entry.status === status);
-  requests = requests.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  requests = requests.sort((a, b) => {
+    const pendingDiff = Number(a.status !== "pending") - Number(b.status !== "pending");
+    if (pendingDiff) return pendingDiff;
+    return new Date(b.submittedAt) - new Date(a.submittedAt);
+  });
   res.json(requests);
 });
 
@@ -275,11 +392,13 @@ app.get("/api/requests/reference/:referenceId", async (req, res) => {
   );
   if (!request) return res.status(404).json({ error: "Reference ID not found." });
 
+  const changedWorkflow = ensureRequestWorkflow(request);
   const item = request.itemId
     ? (db.items || []).find((entry) => entry.id === request.itemId)
     : null;
 
-  if (item && await ensureBrandedQrForItem(req, item)) await writeDb(db);
+  const changedQr = item ? await ensureBrandedQrForItem(req, item) : false;
+  if (changedWorkflow || changedQr) await writeDb(db);
 
   res.json({
     referenceId: request.referenceId || request.id,
@@ -288,6 +407,9 @@ app.get("/api/requests/reference/:referenceId", async (req, res) => {
     site: request.site,
     categoryName: request.categoryName,
     status: request.status === "approved" ? "accepted" : request.status === "rejected" ? "rejected" : "pending",
+    approvalFlow: request.approvalFlow || [],
+    approvals: request.approvals || [],
+    currentApprovalRole: request.currentApprovalRole || "",
     submittedAt: request.submittedAt,
     reviewedAt: request.reviewedAt,
     reviewNote: request.reviewNote || "",
@@ -303,12 +425,40 @@ app.post("/api/requests/:id/approve", async (req, res) => {
   const db = await readDb();
   const request = db.requests.find((entry) => entry.id === req.params.id);
   if (!request) return res.status(404).json({ error: "Request not found." });
+  ensureRequestWorkflow(request);
   if (request.status !== "pending") return res.status(409).json({ error: "Only pending requests can be approved." });
+
+  const role = normalizeRole(req.body?.role);
+  if (!requestCanBeActionedBy(request, role)) {
+    return res.status(403).json({ error: `Waiting for ${roleLabel(request.currentApprovalRole)} approval.` });
+  }
 
   const category = db.categories.find((entry) => entry.id === request.categoryId);
   if (!category) return res.status(400).json({ error: "Request category no longer exists." });
+
+  const approvingRole = normalizeRole(request.currentApprovalRole);
+  const approvedBy = normalizeText(req.body?.approvedBy) || roleLabel(role);
+  request.approvals = Array.isArray(request.approvals) ? request.approvals : [];
+  if (!request.approvals.some((entry) => normalizeRole(entry.role) === approvingRole)) {
+    request.approvals.push({
+      role: approvingRole,
+      roleLabel: roleLabel(approvingRole),
+      approvedBy,
+      approvedAt: nowIso(),
+      note: normalizeText(req.body?.reviewNote)
+    });
+  }
+
+  ensureRequestWorkflow(request);
+
+  if (request.currentApprovalRole) {
+    request.reviewNote = normalizeText(req.body?.reviewNote);
+    await writeDb(db);
+    return res.json({ request, nextRole: request.currentApprovalRole, complete: false });
+  }
+
   const expiresAt = pickExpiryDate(category, request.values, req.body?.expiresAt);
-  if (!expiresAt) return res.status(400).json({ error: "Expiry/validity date is required before approval." });
+  if (!expiresAt) return res.status(400).json({ error: "Expiry/validity date is required before final approval." });
 
   const qrId = `QR-${nanoid()}`;
   const qrPayload = getQrPayload(req, qrId);
@@ -333,27 +483,38 @@ app.post("/api/requests/:id/approve", async (req, res) => {
     approvedAt: nowIso(),
     expiresAt,
     archivedAt: null,
-    reviewNote: normalizeText(req.body?.reviewNote)
+    reviewNote: normalizeText(req.body?.reviewNote),
+    approvals: request.approvals || []
   };
 
   request.status = "approved";
   request.reviewedAt = nowIso();
   request.reviewNote = item.reviewNote;
+  request.currentApprovalRole = "";
   request.itemId = item.id;
 
   db.items.push(item);
   await writeDb(db);
-  res.status(201).json({ request, item: { ...item, validity: getItemValidity(item) } });
+  res.status(201).json({ request, item: { ...item, validity: getItemValidity(item) }, complete: true });
 });
 
 app.post("/api/requests/:id/reject", async (req, res) => {
   const db = await readDb();
   const request = db.requests.find((entry) => entry.id === req.params.id);
   if (!request) return res.status(404).json({ error: "Request not found." });
+  ensureRequestWorkflow(request);
   if (request.status !== "pending") return res.status(409).json({ error: "Only pending requests can be rejected." });
+  const role = normalizeRole(req.body?.role);
+  if (!requestCanBeActionedBy(request, role)) {
+    return res.status(403).json({ error: `Waiting for ${roleLabel(request.currentApprovalRole)} review.` });
+  }
+  const rejectedRole = normalizeRole(request.currentApprovalRole);
   request.status = "rejected";
   request.reviewedAt = nowIso();
+  request.currentApprovalRole = "";
   request.reviewNote = normalizeText(req.body?.reviewNote);
+  request.rejectedBy = normalizeText(req.body?.rejectedBy) || roleLabel(role);
+  request.rejectedRole = role === "all" ? rejectedRole : role;
   await writeDb(db);
   res.json(request);
 });

@@ -10,7 +10,21 @@ async function request(path, options = {}) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      const looksLikeHtml = text.trim().startsWith("<");
+      throw new Error(
+        looksLikeHtml
+          ? `Backend API route ${API_ROOT}${path} returned the web page instead of JSON. Rebuild/restart the backend container after copying server files.`
+          : `Backend API route ${API_ROOT}${path} returned invalid JSON.`
+      );
+    }
+  }
+
   if (!response.ok) {
     throw new Error(data?.error || data?.detail || "Request failed");
   }
@@ -19,6 +33,7 @@ async function request(path, options = {}) {
 
 export const api = {
   health: () => request("/health"),
+  login: (payload) => request("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   categories: () => request("/categories"),
   createCategory: (payload) => request("/categories", { method: "POST", body: JSON.stringify(payload) }),
   updateCategory: (id, payload) => request(`/categories/${id}`, { method: "PUT", body: JSON.stringify(payload) }),

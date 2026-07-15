@@ -24,7 +24,10 @@ After a QR photo/image is selected, the app now runs a more forgiving scan: nati
   - Item detail pages show a compact QR code and Reference ID inside the validity banner.
 
 - Admin page
-  - Password gate. Temporary password: `1234`.
+  - Account login. Test accounts:
+    - `security` / `1234`
+    - `engineering` / `1234`
+    - `admin` / `1234` for full admin access.
   - Expiry quick list as the default view.
   - Clickable admin stat cards for Builder, Requests, Approved, Expired, and Archived.
   - Red request notification badge.
@@ -32,8 +35,13 @@ After a QR photo/image is selected, the app now runs a more forgiving scan: nati
   - Add custom fields per category.
   - Supports text, number, date, textarea, select, and image fields.
   - Image fields are stored as base64 inside `server/data/db.json` for now.
-  - Approve/reject requests.
-  - Approved request generates one permanent QR code.
+  - Two-step approval workflow by category:
+    - Machines: Security → Engineering
+    - Devices: Engineering → Security
+    - Tools: Security → Engineering
+  - The first required group approves first, then the request passes to the next group.
+  - The QR code is generated only after the final required group approves.
+  - Either current approver can reject the request.
   - Update expiry while keeping the same QR code.
   - Archive and restore registered items.
 
@@ -111,7 +119,7 @@ server/data/db.json
 This file stores:
 
 - categories
-- requests, including Reference IDs and review status
+- requests, including Reference IDs, approval flow, approval trail, and review status
 - approved items
 - QR IDs
 - QR image data URL
@@ -126,6 +134,7 @@ When replacing JSON storage with a real DB, keep these main tables/collections:
 - `categories`
 - `category_fields`
 - `asset_requests`
+- `asset_request_approvals`
 - `assets`
 - `asset_values`
 - `asset_archive_logs`

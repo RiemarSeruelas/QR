@@ -2,7 +2,7 @@
   "meta": {
     "appName": "QR Asset System",
     "version": 1,
-    "updatedAt": "2026-07-09T05:41:26.634Z"
+    "updatedAt": "2026-07-15T05:02:39.002Z"
   },
   "categories": [
     {
@@ -135,7 +135,12 @@
       "submittedAt": "2026-07-09T02:54:41.375Z",
       "reviewedAt": "2026-07-09T02:54:47.257Z",
       "reviewNote": "",
-      "itemId": "asset-WXEFAYNM"
+      "itemId": "asset-WXEFAYNM",
+      "approvalFlow": [
+        "security",
+        "engineering"
+      ],
+      "approvals": []
     },
     {
       "id": "req-WUV3ZRDI",
@@ -191,7 +196,13 @@
       "status": "pending",
       "submittedAt": "2026-07-09T05:32:12.886Z",
       "reviewedAt": null,
-      "reviewNote": ""
+      "reviewNote": "",
+      "approvalFlow": [
+        "security",
+        "engineering"
+      ],
+      "approvals": [],
+      "currentApprovalRole": "security"
     },
     {
       "id": "req-NT7FSFJR",
@@ -229,7 +240,90 @@
       "submittedAt": "2026-07-09T05:41:13.483Z",
       "reviewedAt": "2026-07-09T05:41:26.633Z",
       "reviewNote": "",
-      "itemId": "asset-NXSI4BM9"
+      "itemId": "asset-NXSI4BM9",
+      "approvalFlow": [
+        "security",
+        "engineering"
+      ],
+      "approvals": []
+    },
+    {
+      "id": "req-70FTBNFH",
+      "referenceId": "REF-TYJ2EIF8",
+      "itemName": "Engineering Try",
+      "itemCode": "12",
+      "site": "Savoury",
+      "submittedBy": "12",
+      "categoryId": "cat-machines",
+      "categoryName": "Machines",
+      "values": {
+        "field-area": "12",
+        "field-line": "12",
+        "field-model": "12",
+        "field-last-pm": "2026-07-20",
+        "field-next-check": "2026-08-06"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "approvalFlow": [
+        "security",
+        "engineering"
+      ],
+      "approvals": [
+        {
+          "role": "security",
+          "roleLabel": "Security",
+          "approvedBy": "Security Admin",
+          "approvedAt": "2026-07-10T06:03:59.675Z",
+          "note": ""
+        },
+        {
+          "role": "engineering",
+          "roleLabel": "Engineering",
+          "approvedBy": "Engineering Admin",
+          "approvedAt": "2026-07-10T06:04:08.543Z",
+          "note": ""
+        }
+      ],
+      "currentApprovalRole": "",
+      "status": "approved",
+      "submittedAt": "2026-07-10T06:03:37.538Z",
+      "reviewedAt": "2026-07-10T06:04:08.619Z",
+      "reviewNote": "",
+      "itemId": "asset-S8BNLFNY"
     }
   ],
   "items": [
@@ -272,9 +366,10 @@
       "registeredAt": "2026-07-09T02:54:47.257Z",
       "approvedAt": "2026-07-09T02:54:47.257Z",
       "expiresAt": "2026-07-30",
-      "archivedAt": null,
+      "archivedAt": "2026-07-15T03:52:53.201Z",
       "reviewNote": "",
-      "updatedAt": "2026-07-09T05:31:49.465Z"
+      "updatedAt": "2026-07-15T03:51:27.403Z",
+      "archiveNote": "Archived from admin list"
     },
     {
       "id": "asset-NXSI4BM9",
@@ -316,7 +411,112 @@
       "approvedAt": "2026-07-09T05:41:26.633Z",
       "expiresAt": "2026-07-21",
       "archivedAt": null,
-      "reviewNote": ""
+      "reviewNote": "",
+      "updatedAt": "2026-07-15T05:02:36.954Z"
+    },
+    {
+      "id": "asset-S8BNLFNY",
+      "qrId": "QR-33P1APA8",
+      "qrPayload": "http://localhost:5057/item/QR-33P1APA8",
+      "qrImageDataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYwIiB2aWV3Qm94PSIwIDAgNDEgNDEiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTAgMGg0MXY0MUgweiIvPjxwYXRoIHN0cm9rZT0iIzEyMjAzMyIgZD0iTTIgMi41aDdtMSAwaDFtMiAwaDNtMyAwaDJtMSAwaDFtMSAwaDFtMiAwaDJtMyAwaDdNMiAzLjVoMW01IDBoMW0xIDBoMm0zIDBoMm0xIDBoMW0xIDBoMW00IDBoMW0zIDBoMm0xIDBoMW01IDBoMU0yIDQuNWgxbTEgMGgzbTEgMGgxbTEgMGgybTEgMGgxbTEgMGgxbTEgMGgybTIgMGgxbTEgMGgxbTMgMGg0bTEgMGgxbTEgMGgzbTEgMGgxTTIgNS41aDFtMSAwaDNtMSAwaDFtMiAwaDFtMSAwaDJtNiAwaDVtMyAwaDFtMiAwaDFtMSAwaDNtMSAwaDFNMiA2LjVoMW0xIDBoM20xIDBoMW00IDBoMm0xIDBoMm0zIDBoMW01IDBoMm0xIDBoMW0xIDBoMW0xIDBoM20xIDBoMU0yIDcuNWgxbTUgMGgxbTEgMGgxbTEgMGgxbTEgMGgxbTEgMGg0bTIgMGg0bTEgMGg0bTEgMGgxbTUgMGgxTTIgOC41aDdtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDFtMSAwaDdNMTAgOS41aDJtMSAwaDJtMyAwaDFtMSAwaDJtMSAwaDFtMiAwaDJtMiAwaDFNNCAxMC41aDNtMSAwaDFtMSAwaDFtNCAwaDZtMSAwaDJtMSAwaDFtMiAwaDFtMSAwaDRtMiAwaDNNMiAxMS41aDJtMSAwaDJtMTEgMGgxbTUgMGgxbTIgMGgxbTEgMGgxbTIgMGgzbTEgMGgxTTIgMTIuNWgxbTIgMGgxbTEgMGgybTEgMGgybTIgMGgxbTEgMGgybTMgMGg1bTIgMGgzbTEgMGgxbTEgMGgxbTIgMGgyTTIgMTMuNWgxbTEgMGgzbTMgMGgxbTEgMGgxbTQgMGgxbTIgMGgxbTEgMGgzbTEgMGgxbTIgMGgxbTIgMGg2TTIgMTQuNWgzbTEgMGgzbTEgMGgxbTEgMGgxbTEgMGgzbTMgMGgzbTIgMGg1bTIgMGgxbTEgMGgxbTEgMGgyTTIgMTUuNWgybTEgMGgxbTQgMGgybTEgMGgybTYgMGgxbTEgMGgxbTcgMGgxbTEgMGgxbTEgMGgyTTIgMTYuNWg5bTEgMGgxbTEgMGgxbTMgMGgxbTEgMGgxbTEgMGg0bTQgMGgxbTEgMGgybTEgMGgxbTEgMGgyTTIgMTcuNWg0bTEgMGgxbTIgMGgxbTIgMGgxbTIgMGgybTIgMGgzbTIgMGgybTMgMGgybTEgMGgxbTMgMGgyTTIgMTguNWgxbTEgMGgybTIgMGgxbTEgMGgxbTMgMGgxbTYgMGgxbTEgMGgxbTEgMGgxbTEgMGgxbTEgMGg2bTEgMGgxbTEgMGgxTTQgMTkuNWgybTEgMGgxbTEgMGgxbTEgMGgzbTUgMGgxbTIgMGg0bTEgMGgybTIgMGgxbTEgMGgxbTIgMGgxTTMgMjAuNWgybTMgMGgybTEgMGgxbTEgMGgxbTEgMGgybTMgMGg0bTIgMGgxbTEgMGgybTEgMGgxbTEgMGgzbTEgMGgyTTMgMjEuNWgxbTEgMGgybTQgMGgybTEgMGgxbTIgMGgzbTEgMGgxbTEgMGgxbTQgMGgxbTIgMGg0TTQgMjIuNWgxbTEgMGg0bTEgMGgzbTIgMGgxbTEgMGgzbTEgMGgxbTIgMGgybTUgMGg1TTYgMjMuNWgybTIgMGgybTEgMGgybTEgMGgybTEgMGgxbTEgMGgybTEgMGgxbTEgMGgxbTYgMGgxbTEgMGg0TTIgMjQuNWg0bTIgMGgxbTEgMGg1bTEgMGg0bTMgMGgxbTUgMGgybTEgMGgxbTUgMGgxTTIgMjUuNWgxbTMgMGgxbTIgMGgxbTIgMGgybTEgMGgxbTEgMGgxbTEgMGgzbTEgMGgybTMgMGgxbTEgMGg0bTMgMGgxTTIgMjYuNWgxbTUgMGg2bTEgMGgxbTIgMGgybTIgMGgxbTEgMGgybTYgMGgxbTMgMGgxbTEgMGgxTTIgMjcuNWgybTIgMGgxbTQgMGg4bTIgMGgybTEgMGgxbTEgMGg3bTIgMGgxTTIgMjguNWgxbTUgMGgybTEgMGgxbTQgMGgzbTIgMGgxbTIgMGgxbTIgMGgybTcgMGgxbTEgMGgxTTIgMjkuNWgxbTMgMGgxbTYgMGgxbTIgMGgzbTIgMGgxbTQgMGgxbTEgMGgxbTEgMGgxbTIgMGgxbTEgMGgzTTIgMzAuNWgxbTIgMGgxbTIgMGg3bTIgMGgxbTEgMGgybTEgMGgxbTQgMGgybTEgMGg1bTIgMGgyTTEwIDMxLjVoMW01IDBoMW0yIDBoMW0yIDBoMW0xIDBoM20yIDBoMm0zIDBoMU0yIDMyLjVoN20zIDBoM20xIDBoMW0yIDBoMW0xIDBoMW0yIDBoMW0xIDBoMW0xIDBoMW0xIDBoMW0xIDBoMW0xIDBoMm0xIDBoMk0yIDMzLjVoMW01IDBoMW0yIDBoMW0xIDBoMW0xIDBoMm0xIDBoMW0yIDBoM20xIDBoMm0xIDBoMW0xIDBoMW0zIDBoMW0yIDBoMU0yIDM0LjVoMW0xIDBoM20xIDBoMW0xIDBoMm0xIDBoMW0zIDBoMW0xIDBoMW0yIDBoMW0yIDBoM20xIDBoNm0xIDBoMW0xIDBoMU0yIDM1LjVoMW0xIDBoM20xIDBoMW0xIDBoMW0xIDBoMW0zIDBoMW0yIDBoMW00IDBoMW0zIDBoMm0yIDBoMW0xIDBoNU0yIDM2LjVoMW0xIDBoM20xIDBoMW0xIDBoMm0xIDBoMm0xIDBoMm0xIDBoMW0xIDBoMW0zIDBoM20xIDBoMW0zIDBoMW0xIDBoMW0yIDBoMU0yIDM3LjVoMW01IDBoMW0yIDBoMm0yIDBoNG00IDBoMW0xIDBoMW00IDBoM201IDBoMU0yIDM4LjVoN201IDBoMW0yIDBoMW0zIDBoMW0yIDBoNG0xIDBoMW0yIDBoMm0xIDBoNCIvPgogIDxyZWN0IHg9IjIwOCIgeT0iMjA4IiB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjE0NCIgcng9IjI4IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiMwZjYyZmUiIHN0cm9rZS13aWR0aD0iNiIvPgogIDxjaXJjbGUgY3g9IjI4MCIgY3k9IjI4MCIgcj0iNTAiIGZpbGw9IiMwZjYyZmUiLz4KICA8dGV4dCB4PSIyODAiIHk9IjI3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IiNmZmZmZmYiPlU8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iODAwIiBmaWxsPSIjZmZmZmZmIj5VbmlsZXZlcjwvdGV4dD4KPC9zdmc+Cg==",
+      "qrBrand": "unilever-v1",
+      "itemName": "Engineering Try",
+      "itemCode": "12",
+      "site": "Savoury",
+      "categoryId": "cat-machines",
+      "categoryName": "Machines",
+      "values": {
+        "field-area": "12",
+        "field-line": "12",
+        "field-model": "12",
+        "field-last-pm": "2026-07-20",
+        "field-next-check": "2026-08-06"
+      },
+      "fieldsSnapshot": [
+        {
+          "id": "field-area",
+          "label": "Area",
+          "type": "text",
+          "required": true,
+          "placeholder": "Example: Savoury / Dressings"
+        },
+        {
+          "id": "field-line",
+          "label": "Line",
+          "type": "text",
+          "required": false,
+          "placeholder": "Example: CL3"
+        },
+        {
+          "id": "field-model",
+          "label": "Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "Machine model"
+        },
+        {
+          "id": "field-last-pm",
+          "label": "Last PM Date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "id": "field-next-check",
+          "label": "Next Check Date",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "submittedBy": "12",
+      "requestId": "req-70FTBNFH",
+      "registeredAt": "2026-07-10T06:04:08.619Z",
+      "approvedAt": "2026-07-10T06:04:08.619Z",
+      "expiresAt": "2026-08-06",
+      "archivedAt": null,
+      "reviewNote": "",
+      "approvals": [
+        {
+          "role": "security",
+          "roleLabel": "Security",
+          "approvedBy": "Security Admin",
+          "approvedAt": "2026-07-10T06:03:59.675Z",
+          "note": ""
+        },
+        {
+          "role": "engineering",
+          "roleLabel": "Engineering",
+          "approvedBy": "Engineering Admin",
+          "approvedAt": "2026-07-10T06:04:08.543Z",
+          "note": ""
+        }
+      ],
+      "updatedAt": "2026-07-15T05:02:39.001Z"
+    }
+  ],
+  "adminUsers": [
+    {
+      "id": "admin-security",
+      "username": "security",
+      "password": "1234",
+      "role": "security",
+      "displayName": "Security Admin",
+      "createdAt": "2026-07-10T06:03:02.869Z"
+    },
+    {
+      "id": "admin-engineering",
+      "username": "engineering",
+      "password": "1234",
+      "role": "engineering",
+      "displayName": "Engineering Admin",
+      "createdAt": "2026-07-10T06:03:02.869Z"
+    },
+    {
+      "id": "admin-full",
+      "username": "admin",
+      "password": "1234",
+      "role": "all",
+      "displayName": "Full Admin",
+      "createdAt": "2026-07-10T06:03:02.869Z"
     }
   ]
 }
